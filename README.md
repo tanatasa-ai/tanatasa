@@ -76,9 +76,9 @@ Next: [cart, quote and checkout over REST](docs/api.md#guest-shopping-flow).
 
 ## Tanatasa CLI quick start (30 seconds)
 
-> **TODO(cli-distribution):** the CLI is not yet published. Fill in the
-> install command once it is on npm or committed to this repository. See
-> [docs/cli.md](docs/cli.md#install).
+> **npm release pending:** `@tanatasa/cli` is prepared but not yet published.
+> Install the public CLI source today with `npm install --global ./cli` after
+> cloning this repository. See [docs/cli.md](docs/cli.md#install).
 
 ```bash
 tanatasa search "cerave cleanser" --in-stock true --max-price 3000
@@ -116,7 +116,7 @@ Full parameters, responses and example calls are in [docs/mcp.md](docs/mcp.md#to
 
 ## About this repository
 
-This repository holds documentation and examples only. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
+This repository holds documentation, examples and the dependency-free CLI source in `cli/`. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
 
 For documentation changes, regenerate the combined file with `node scripts/build-llms-full.mjs`. CI checks it on pull requests, pushes to main and weekly. The live tool names, REST methods, paths and input schemas are compared with the reviewed [tool contract](docs/tool-contract.json). Update that snapshot only after reviewing the corresponding API changes and correcting the reference docs.
 

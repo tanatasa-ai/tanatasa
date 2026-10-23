@@ -1,0 +1,28 @@
+name: CLI package checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+        working-directory: cli
+      - name: Validate package contents and installed entry point
+        working-directory: cli
+        run: |
+          npm pack --ignore-scripts --json > /tmp/tanatasa-pack.json
+          node ../scripts/check-cli-package.mjs /tmp/tanatasa-pack.json
+          npm install --global --ignore-scripts --no-audit --no-fund ./tanatasa-cli-*.tgz
+          tanatasa --help
+          test "$(tanatasa --version)" = "$(node -p 'require("./package.json").version')"

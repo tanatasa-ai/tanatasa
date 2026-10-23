@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Public CLI source, package metadata and MIT licence under `cli/`; npm publication is pending scope ownership and sign-in.
+- Node 20/24 package-install CI and a tag-gated npm trusted-publishing workflow.
+- CLI `--version` and symlink-safe entry-point detection for Unix npm installations.
+
 ### Fixed
 
 - Verified Python's default User-Agent on the production docs, REST and MCP endpoints after a scoped access fix. Storefront browser challenges, API authentication and rate limits remain active.

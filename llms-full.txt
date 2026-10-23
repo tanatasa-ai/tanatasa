@@ -85,9 +85,9 @@ Next: [cart, quote and checkout over REST](https://github.com/tanatasa-beauty/ta
 
 ## Tanatasa CLI quick start (30 seconds)
 
-> **TODO(cli-distribution):** the CLI is not yet published. Fill in the
-> install command once it is on npm or committed to this repository. See
-> [docs/cli.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md#install).
+> **npm release pending:** `@tanatasa/cli` is prepared but not yet published.
+> Install the public CLI source today with `npm install --global ./cli` after
+> cloning this repository. See [docs/cli.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md#install).
 
 ```bash
 tanatasa search "cerave cleanser" --in-stock true --max-price 3000
@@ -125,7 +125,7 @@ Full parameters, responses and example calls are in [docs/mcp.md](https://github
 
 ## About this repository
 
-This repository holds documentation and examples only. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
+This repository holds documentation, examples and the dependency-free CLI source in `cli/`. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
 
 For documentation changes, regenerate the combined file with `node scripts/build-llms-full.mjs`. CI checks it on pull requests, pushes to main and weekly. The live tool names, REST methods, paths and input schemas are compared with the reviewed [tool contract](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/tool-contract.json). Update that snapshot only after reviewing the corresponding API changes and correcting the reference docs.
 
@@ -734,11 +734,20 @@ Other pages: [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/READ
 
 Requires **Node.js 20 or later**. The CLI uses no npm dependencies.
 
-> **TODO(cli-distribution):** the CLI is not published yet. Pick one option
-> and replace this block:
->
-> - npm: `npm install -g <package-name>` or `npx <package-name> --help`
-> - or a single file in this repo: `node cli/tanatasa.mjs --help`
+The CLI source is public in [`cli/`](https://github.com/tanatasa-beauty/tanatasa/blob/main/cli/). The `@tanatasa/cli` npm release
+is prepared but **not yet published**; npm scope setup and first publication are
+pending. Until then, install from this repository:
+
+```bash
+git clone https://github.com/tanatasa-beauty/tanatasa.git
+cd tanatasa
+npm install --global ./cli
+tanatasa --version
+```
+
+Release maintainers: see [`cli/PUBLISHING.md`](https://github.com/tanatasa-beauty/tanatasa/blob/main/cli/PUBLISHING.md). Future
+published releases will support `npm install --global @tanatasa/cli` and
+`npx @tanatasa/cli --help`.
 
 Check the install:
 
@@ -760,6 +769,7 @@ tanatasa --help
 
 | Command | Operation | Notes |
 | --- | --- | --- |
+| `tanatasa --version` | Package version | No network request |
 | `tanatasa tools` | List operations | Prints the live tool manifest |
 | `tanatasa search "<query>" [filters]` | `search_products` | Filters below |
 | `tanatasa product <id-or-slug-or-sku>` | `get_product` | |
@@ -809,7 +819,7 @@ A script version that uses `jq` is in [`examples/cli/shop.sh`](https://github.co
 
 ## Behaviour
 
-- **Output:** on success, a single JSON document on stdout. On failure, a JSON error on stderr (`{"error":{"code","message"}}`, plus `status` for HTTP errors) and exit code `1`.
+- **Output:** on success, a single JSON document on stdout (`--help` and `--version` print text). On failure, a JSON error on stderr (`{"error":{"code","message"}}`, plus `status` for HTTP errors) and exit code `1`.
 - **Money:** integer SGD cents, as everywhere in the API.
 - **Safety:** the CLI refuses HTTP redirects. It never retries checkout automatically and never opens a browser. To retry `checkout`, send the same file with the same `idempotency_key`.
 - **Input limits:** `--json`, `--file` and `--stdin` input must be a JSON object of at most 32 KiB.
@@ -939,7 +949,7 @@ Not from another website. The API sends no CORS headers for other origins. Call 
 
 ### Is the Tanatasa server code open source?
 
-No. This repository contains documentation and examples only.
+The server code is private. The dependency-free CLI source, documentation and examples are public in this repository.
 
 ### How do I report a bug or security issue?
 
