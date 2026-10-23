@@ -1,5 +1,6 @@
 """Tanatasa MCP server: connect with the official MCP Python SDK (v2).
 
+Requires Python 3.11 or later.
 Run: pip install "mcp>=2,<3" && python search.py "cerave cleanser"
 """
 import asyncio
