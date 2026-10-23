@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- Verified Python's default User-Agent on the production docs, REST and MCP endpoints after a scoped access fix. Storefront browser challenges, API authentication and rate limits remain active.
 - Corrected the MCP Python SDK v2 requirement to Python 3.11 or later.
 - Resolved links in generated `llms-full.txt` against their original documents.
 - Added pull-request and push checks for stale generated docs, and expanded the weekly drift check to include REST methods, paths and input schemas.

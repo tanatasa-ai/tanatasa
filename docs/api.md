@@ -62,7 +62,7 @@ Bearer details:
 - An invalid bearer token gets `401` with a `WWW-Authenticate` header. It never falls back to guest access.
 - Trusted server-to-server integrations can ask for a credential through [tanatasa.sg/contact](https://tanatasa.sg/contact). Never ship one in a public client.
 
-**User-Agent:** send a descriptive `User-Agent`, such as `my-agent/1.0 (+https://example.com)`. The site's bot protection returns `403` to some generic library defaults, including Python's `Python-urllib`.
+**User-Agent:** send a descriptive `User-Agent`, such as `my-agent/1.0 (+https://example.com)`, to identify your integration. Python's default `Python-urllib` User-Agent also works on the documented agent API, MCP and documentation endpoints (verified 23 October 2026). Storefront browser challenges remain active separately; API authentication and rate limits still apply.
 
 **Browser calls:** the API sends no CORS headers for other origins. Call it from a server, script or agent runtime, not from front-end JavaScript on another site.
 

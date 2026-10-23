@@ -14,7 +14,7 @@ API = os.environ.get("TANATASA_API_URL", "https://tanatasa.sg") + "/agent/v1"
 
 def search(q: str, max_price_cents: int = 3000, limit: int = 5) -> dict:
     query = urllib.parse.urlencode({"q": q, "in_stock": "true", "max_price": max_price_cents, "limit": limit})
-    # The site's bot protection rejects urllib's default User-Agent, so send a descriptive one.
+    # Identify this example; the agent API also accepts urllib's default User-Agent.
     headers = {"Accept": "application/json", "User-Agent": "tanatasa-example/1.0 (+https://github.com/tanatasa-beauty/tanatasa)"}
     request = urllib.request.Request(f"{API}/products?{query}", headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
