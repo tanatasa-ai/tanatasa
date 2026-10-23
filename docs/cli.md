@@ -10,11 +10,20 @@ Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md
 
 Requires **Node.js 20 or later**. The CLI uses no npm dependencies.
 
-> **TODO(cli-distribution):** the CLI is not published yet. Pick one option
-> and replace this block:
->
-> - npm: `npm install -g <package-name>` or `npx <package-name> --help`
-> - or a single file in this repo: `node cli/tanatasa.mjs --help`
+The CLI source is public in [`cli/`](../cli/). The `@tanatasa/cli` npm release
+is prepared but **not yet published**; npm scope setup and first publication are
+pending. Until then, install from this repository:
+
+```bash
+git clone https://github.com/tanatasa-beauty/tanatasa.git
+cd tanatasa
+npm install --global ./cli
+tanatasa --version
+```
+
+Release maintainers: see [`cli/PUBLISHING.md`](../cli/PUBLISHING.md). Future
+published releases will support `npm install --global @tanatasa/cli` and
+`npx @tanatasa/cli --help`.
 
 Check the install:
 
@@ -36,6 +45,7 @@ tanatasa --help
 
 | Command | Operation | Notes |
 | --- | --- | --- |
+| `tanatasa --version` | Package version | No network request |
 | `tanatasa tools` | List operations | Prints the live tool manifest |
 | `tanatasa search "<query>" [filters]` | `search_products` | Filters below |
 | `tanatasa product <id-or-slug-or-sku>` | `get_product` | |
@@ -85,7 +95,7 @@ A script version that uses `jq` is in [`examples/cli/shop.sh`](../examples/cli/s
 
 ## Behaviour
 
-- **Output:** on success, a single JSON document on stdout. On failure, a JSON error on stderr (`{"error":{"code","message"}}`, plus `status` for HTTP errors) and exit code `1`.
+- **Output:** on success, a single JSON document on stdout (`--help` and `--version` print text). On failure, a JSON error on stderr (`{"error":{"code","message"}}`, plus `status` for HTTP errors) and exit code `1`.
 - **Money:** integer SGD cents, as everywhere in the API.
 - **Safety:** the CLI refuses HTTP redirects. It never retries checkout automatically and never opens a browser. To retry `checkout`, send the same file with the same `idempotency_key`.
 - **Input limits:** `--json`, `--file` and `--stdin` input must be a JSON object of at most 32 KiB.

@@ -1,0 +1,45 @@
+{
+  "name": "@tanatasa/cli",
+  "version": "1.0.0",
+  "description": "Search Tanatasa products, build guest carts and create buyer checkout links from the terminal.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "tanatasa": "./bin/tanatasa.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin/tanatasa.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "homepage": "https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tanatasa-beauty/tanatasa.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/tanatasa-beauty/tanatasa/issues"
+  },
+  "author": "WELL IN STYLE PTE. LTD.",
+  "keywords": [
+    "tanatasa",
+    "cli",
+    "shopping",
+    "skincare",
+    "singapore",
+    "ai-agents"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "prepack": "node --check bin/tanatasa.mjs",
+    "prepublishOnly": "npm test"
+  }
+}

@@ -1,0 +1,35 @@
+name: Publish CLI to npm
+on:
+  push:
+    tags: ['cli-v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Require a versioned release tag
+        working-directory: cli
+        run: |
+          expected="refs/tags/cli-v$(node -p 'require("./package.json").version')"
+          test "$GITHUB_REF" = "$expected" || { echo "Publish only from $expected"; exit 1; }
+      - run: npm test
+        working-directory: cli
+      - name: Inspect public package
+        working-directory: cli
+        run: |
+          npm pack --ignore-scripts --dry-run --json > /tmp/tanatasa-pack.json
+          node ../scripts/check-cli-package.mjs /tmp/tanatasa-pack.json
+      - name: Publish through npm trusted publishing
+        working-directory: cli
+        run: npm publish --access public --provenance

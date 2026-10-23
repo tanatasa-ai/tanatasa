@@ -111,7 +111,7 @@ Not from another website. The API sends no CORS headers for other origins. Call 
 
 ### Is the Tanatasa server code open source?
 
-No. This repository contains documentation and examples only.
+The server code is private. The dependency-free CLI source, documentation and examples are public in this repository.
 
 ### How do I report a bug or security issue?
 
