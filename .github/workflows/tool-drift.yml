@@ -1,0 +1,23 @@
+# Fails when the live Tanatasa tool list no longer matches the ten tools documented in docs/mcp.md.
+name: Tool drift check
+on:
+  schedule:
+    - cron: "0 1 * * 1" # Mondays 09:00 Singapore time
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare live tools with the docs
+        run: |
+          live=$(curl -fsS https://tanatasa.sg/agent/v1/tools | jq -r '.tools[].name' | sort)
+          documented=$(grep -oE '^### `[a-z_]+`' docs/mcp.md | tr -d '#` ' | sort)
+          if [ "$live" != "$documented" ]; then
+            echo "::error::Live tools differ from docs/mcp.md"
+            diff <(echo "$documented") <(echo "$live") || true
+            exit 1
+          fi
+          echo "Tool list matches: $(echo "$live" | wc -l) tools"
