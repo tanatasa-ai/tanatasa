@@ -76,9 +76,15 @@ Next: [cart, quote and checkout over REST](docs/api.md#guest-shopping-flow).
 
 ## Tanatasa CLI quick start (30 seconds)
 
-> **npm release pending:** `@tanatasa/cli` is prepared but not yet published.
-> Install the public CLI source today with `npm install --global ./cli` after
-> cloning this repository. See [docs/cli.md](docs/cli.md#install).
+Install from npm (Node.js 20+):
+
+```bash
+npm install --global @tanatasa/cli
+# Or run directly:
+npx @tanatasa/cli --help
+```
+
+Package: [@tanatasa/cli](https://www.npmjs.com/package/@tanatasa/cli).
 
 ```bash
 tanatasa search "cerave cleanser" --in-stock true --max-price 3000

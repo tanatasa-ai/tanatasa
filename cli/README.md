@@ -20,8 +20,8 @@ Or run without a global install:
 npx @tanatasa/cli search "cerave cleanser" --in-stock true --max-price 3000
 ```
 
-See the [release status and source installation instructions](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md)
-if the initial npm release is still pending.
+Published package: [@tanatasa/cli](https://www.npmjs.com/package/@tanatasa/cli).
+For reproducible scripts, pin a version: `npx @tanatasa/cli@1.0.0 --help`.
 
 ## Commands
 

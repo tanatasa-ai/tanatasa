@@ -10,20 +10,17 @@ Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md
 
 Requires **Node.js 20 or later**. The CLI uses no npm dependencies.
 
-The CLI source is public in [`cli/`](../cli/). The `@tanatasa/cli` npm release
-is prepared but **not yet published**; npm scope setup and first publication are
-pending. Until then, install from this repository:
+Install the public [@tanatasa/cli](https://www.npmjs.com/package/@tanatasa/cli) package:
 
 ```bash
-git clone https://github.com/tanatasa-beauty/tanatasa.git
-cd tanatasa
-npm install --global ./cli
-tanatasa --version
+npm install --global @tanatasa/cli
+# Or run without a global install:
+npx @tanatasa/cli --help
 ```
 
-Release maintainers: see [`cli/PUBLISHING.md`](../cli/PUBLISHING.md). Future
-published releases will support `npm install --global @tanatasa/cli` and
-`npx @tanatasa/cli --help`.
+For reproducible scripts, pin a version: `npx @tanatasa/cli@1.0.0 --version`.
+The source is public in [`cli/`](../cli/). Maintainers can find the release
+workflow in [`cli/PUBLISHING.md`](../cli/PUBLISHING.md).
 
 Check the install:
 

@@ -1,11 +1,11 @@
 {
   "name": "@tanatasa/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Search Tanatasa products, build guest carts and create buyer checkout links from the terminal.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "tanatasa": "./bin/tanatasa.mjs"
+    "tanatasa": "bin/tanatasa.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -15,7 +15,7 @@
     "README.md",
     "LICENSE"
   ],
-  "homepage": "https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md",
+  "homepage": "https://tanatasa.sg",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tanatasa-beauty/tanatasa.git",

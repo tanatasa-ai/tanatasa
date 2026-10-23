@@ -32,4 +32,10 @@ jobs:
           node ../scripts/check-cli-package.mjs /tmp/tanatasa-pack.json
       - name: Publish through npm trusted publishing
         working-directory: cli
-        run: npm publish --access public --provenance
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          if npm view "@tanatasa/cli@$version" version >/dev/null 2>&1; then
+            echo "@tanatasa/cli@$version is already published; nothing to publish."
+          else
+            npm publish --access public --provenance
+          fi

@@ -6,7 +6,7 @@
 
 ### Added
 
-- Public CLI source, package metadata and MIT licence under `cli/`; npm publication is pending scope ownership and sign-in.
+- Published `@tanatasa/cli@1.0.0` under the Tanatasa npm organization, with public CLI source, package metadata and MIT licence under `cli/`.
 - Node 20/24 package-install CI and a tag-gated npm trusted-publishing workflow.
 - CLI `--version` and symlink-safe entry-point detection for Unix npm installations.
 
