@@ -1,6 +1,9 @@
 # Fails when the live Tanatasa tool list no longer matches the ten tools documented in docs/mcp.md.
 name: Tool drift check
 on:
+  pull_request:
+  push:
+    branches: [main]
   schedule:
     - cron: "0 1 * * 1" # Mondays 09:00 Singapore time
   workflow_dispatch:
@@ -11,6 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check generated documentation
+        run: |
+          node scripts/build-llms-full.mjs
+          git diff --exit-code -- llms-full.txt
+      - name: Compare live tool schemas with the reviewed contract
+        run: node scripts/check-contract.mjs
       - name: Compare live tools with the docs
         run: |
           live=$(curl -fsS https://tanatasa.sg/agent/v1/tools | jq -r '.tools[].name' | sort)

@@ -118,4 +118,6 @@ Full parameters, responses and example calls are in [docs/mcp.md](docs/mcp.md#to
 
 This repository holds documentation and examples only. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
 
+For documentation changes, regenerate the combined file with `node scripts/build-llms-full.mjs`. CI checks it on pull requests, pushes to main and weekly. The live tool names, REST methods, paths and input schemas are compared with the reviewed [tool contract](docs/tool-contract.json). Update that snapshot only after reviewing the corresponding API changes and correcting the reference docs.
+
 Tanatasa is operated by WELL IN STYLE PTE. LTD., Singapore. Store: [tanatasa.sg](https://tanatasa.sg) · Shipping: [tanatasa.sg/shipping](https://tanatasa.sg/shipping) · Returns: [tanatasa.sg/return](https://tanatasa.sg/return) · Privacy: [tanatasa.sg/privacy](https://tanatasa.sg/privacy)

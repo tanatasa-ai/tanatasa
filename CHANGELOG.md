@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Corrected the MCP Python SDK v2 requirement to Python 3.11 or later.
+- Resolved links in generated `llms-full.txt` against their original documents.
+- Added pull-request and push checks for stale generated docs, and expanded the weekly drift check to include REST methods, paths and input schemas.
+
 ## [1.0.0] - 2026-10-23
 
 ### Added

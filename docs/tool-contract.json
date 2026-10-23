@@ -1,0 +1,388 @@
+[
+  {
+    "name": "search_products",
+    "method": "GET",
+    "path": "/agent/v1/products",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string",
+          "maxLength": 200,
+          "default": ""
+        },
+        "brand": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "skin_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "ingredient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "min_price": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_price": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_stock": {
+          "type": "boolean",
+          "default": false
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        }
+      },
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "get_product",
+    "method": "GET",
+    "path": "/agent/v1/products/:product",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "product": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "product"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "create_cart",
+    "method": "POST",
+    "path": "/agent/v1/carts",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "get_cart",
+    "method": "GET",
+    "path": "/agent/v1/carts/:cart_id",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "cart_id"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "set_cart_item",
+    "method": "PUT",
+    "path": "/agent/v1/carts/:cart_id/items/:variant_id",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "variant_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "cart_id",
+        "version",
+        "variant_id",
+        "quantity"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "set_cart_coupon",
+    "method": "PUT",
+    "path": "/agent/v1/carts/:cart_id/coupon",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "coupon_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "cart_id",
+        "version",
+        "coupon_code"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "quote_cart",
+    "method": "GET",
+    "path": "/agent/v1/carts/:cart_id/quote",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "cart_id"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "create_checkout",
+    "method": "POST",
+    "path": "/agent/v1/carts/:cart_id/checkout",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "cart_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "expected_total": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "cart_id",
+        "version",
+        "expected_total",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "get_order",
+    "method": "GET",
+    "path": "/agent/v1/orders/:order_id",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "order_id"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "checkout_session",
+    "method": "POST",
+    "path": "/agent/v1/checkout-session",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "checkout_session": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^tanatasa-variant-[1-9]\\d*$"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "offerId": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "maxItems": 10
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "merchant_name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "price": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "id",
+                  "quantity"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "checkout_session"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+]

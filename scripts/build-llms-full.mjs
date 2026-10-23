@@ -6,7 +6,13 @@ const root = new URL("../", import.meta.url);
 const sources = ["README.md", "docs/mcp.md", "docs/api.md", "docs/cli.md", "docs/faq.md"];
 
 const parts = await Promise.all(sources.map(async (path) => {
-  const text = await readFile(new URL(path, root), "utf8");
+  // The combined file is consumed as raw text, outside each source directory.
+  // Resolve local links against the original document before concatenating.
+  const sourceUrl = `https://github.com/tanatasa-beauty/tanatasa/blob/main/${path}`;
+  const text = (await readFile(new URL(path, root), "utf8")).replace(
+    /\]\(([^\s)]+)\)/g,
+    (match, target) => /^[a-z][a-z\d+.-]*:/i.test(target) ? match : `](${new URL(target, sourceUrl).href})`,
+  );
   return `<!-- source: https://github.com/tanatasa-beauty/tanatasa/blob/main/${path} -->\n\n${text.trim()}\n`;
 }));
 const header = "# Tanatasa: full developer documentation\n\n"

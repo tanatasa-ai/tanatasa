@@ -11,7 +11,7 @@ Runnable examples for each Tanatasa interface. All of them call production (`htt
 | | `search.py`: search with the Python standard library | Python 3.9+ |
 | [`mcp/`](mcp/) | `tools-list.sh`: raw JSON-RPC over Streamable HTTP | curl |
 | | `node/search.mjs`: official MCP TypeScript SDK client | Node.js 20+ |
-| | `python/search.py`: official MCP Python SDK client | Python 3.10+ |
+| | `python/search.py`: official MCP Python SDK client | Python 3.11+ (MCP SDK v2) |
 | [`cli/`](cli/) | `shop.sh`: CLI cart flow | Tanatasa CLI, jq |
 
 `rest/guest-cart.sh` and `cli/shop.sh` create a real guest cart, which expires unused after 30 days. They create a checkout link only if you set `CHECKOUT=1`. Even then, nothing is charged unless a buyer opens the link and pays.

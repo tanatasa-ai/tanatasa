@@ -21,7 +21,7 @@ This repository is the developer documentation for Tanatasa's agent shopping int
 | OpenAPI 3.1 spec | [`https://tanatasa.sg/agent/v1/openapi.json`](https://tanatasa.sg/agent/v1/openapi.json) | No |
 | CLI | `tanatasa` (Node.js 20+) | No |
 
-**Docs:** [MCP server](docs/mcp.md) · [REST API](docs/api.md) · [CLI](docs/cli.md) · [FAQ](docs/faq.md) · [Examples](examples/) · [Changelog](CHANGELOG.md)
+**Docs:** [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md) · [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md) · [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md) · [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md) · [Examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/) · [Changelog](https://github.com/tanatasa-beauty/tanatasa/blob/main/CHANGELOG.md)
 
 ## Key facts
 
@@ -65,7 +65,7 @@ claude mcp add --transport http tanatasa https://tanatasa.sg/mcp
 
 Then ask: *"Find CeraVe cleansers under S$30 on Tanatasa."*
 
-Configs for ChatGPT, Windsurf, Gemini CLI, Codex and stdio-only clients are in [docs/mcp.md](docs/mcp.md#how-to-connect-tanatasa-to-your-ai-assistant).
+Configs for ChatGPT, Windsurf, Gemini CLI, Codex and stdio-only clients are in [docs/mcp.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#how-to-connect-tanatasa-to-your-ai-assistant).
 
 ## Tanatasa REST API quick start (30 seconds)
 
@@ -81,13 +81,13 @@ Read one product's ingredients, usage and variants:
 curl "https://tanatasa.sg/agent/v1/products/cerave-foaming-cleanser-236ml"
 ```
 
-Next: [cart, quote and checkout over REST](docs/api.md#guest-shopping-flow).
+Next: [cart, quote and checkout over REST](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md#guest-shopping-flow).
 
 ## Tanatasa CLI quick start (30 seconds)
 
 > **TODO(cli-distribution):** the CLI is not yet published. Fill in the
 > install command once it is on npm or committed to this repository. See
-> [docs/cli.md](docs/cli.md#install).
+> [docs/cli.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md#install).
 
 ```bash
 tanatasa search "cerave cleanser" --in-stock true --max-price 3000
@@ -112,7 +112,7 @@ Output is JSON on stdout. Errors go to stderr with exit code 1.
 | `checkout_session` | `POST /agent/v1/checkout-session` | One-step checkout from product feed IDs |
 | `get_order` | `GET /agent/v1/orders/{order_id}` | Payment status, fulfilment status and tracking |
 
-Full parameters, responses and example calls are in [docs/mcp.md](docs/mcp.md#tool-reference).
+Full parameters, responses and example calls are in [docs/mcp.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#tool-reference).
 
 ## Discovery URLs
 
@@ -125,7 +125,9 @@ Full parameters, responses and example calls are in [docs/mcp.md](docs/mcp.md#to
 
 ## About this repository
 
-This repository holds documentation and examples only. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
+This repository holds documentation and examples only. Tanatasa's server code is not public. Report documentation errors as [issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security problems as described in [SECURITY.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/SECURITY.md). Product, order and delivery questions go to [tanatasa.sg/contact](https://tanatasa.sg/contact).
+
+For documentation changes, regenerate the combined file with `node scripts/build-llms-full.mjs`. CI checks it on pull requests, pushes to main and weekly. The live tool names, REST methods, paths and input schemas are compared with the reviewed [tool contract](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/tool-contract.json). Update that snapshot only after reviewing the corresponding API changes and correcting the reference docs.
 
 Tanatasa is operated by WELL IN STYLE PTE. LTD., Singapore. Store: [tanatasa.sg](https://tanatasa.sg) · Shipping: [tanatasa.sg/shipping](https://tanatasa.sg/shipping) · Returns: [tanatasa.sg/return](https://tanatasa.sg/return) · Privacy: [tanatasa.sg/privacy](https://tanatasa.sg/privacy)
 
@@ -139,7 +141,7 @@ Tanatasa is operated by WELL IN STYLE PTE. LTD., Singapore. Store: [tanatasa.sg]
 
 The Tanatasa MCP server lets an AI assistant search Tanatasa's skincare and beauty catalog, build a cart and prepare a checkout link for the buyer. It is a remote server at `https://tanatasa.sg/mcp`, and it needs no account, API key or local install.
 
-Other pages: [README](../README.md) · [REST API](api.md) · [CLI](cli.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
+Other pages: [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/README.md) · [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md) · [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md) · [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md) · [Examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
 ## Endpoints
 
@@ -148,9 +150,9 @@ Other pages: [README](../README.md) · [REST API](api.md) · [CLI](cli.md) · [F
 | `https://tanatasa.sg/mcp` | All 10 tools, plus the checkout UI resource | Full shopping: search, cart, quote, checkout, order status |
 | `https://tanatasa.sg/mcp/catalog` | `search_products`, `get_product` | Read-only product search and details |
 
-- **Transport:** Streamable HTTP, stateless, with JSON responses. Send JSON-RPC as an HTTP `POST`. A `GET` returns `405`, and there is no server-to-client notification stream. Clients that support only the older HTTP+SSE transport cannot connect directly; see [stdio-only clients](#stdio-only-clients-mcp-remote).
+- **Transport:** Streamable HTTP, stateless, with JSON responses. Send JSON-RPC as an HTTP `POST`. A `GET` returns `405`, and there is no server-to-client notification stream. Clients that support only the older HTTP+SSE transport cannot connect directly; see [stdio-only clients](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#stdio-only-clients-mcp-remote).
 - **Server names:** `tanatasa-shopping` (full) and `tanatasa-catalog` (catalog only), both version `1.0.0`.
-- **Authentication:** none required. OAuth 2.1 account linking is optional. See [Authentication](#authentication).
+- **Authentication:** none required. OAuth 2.1 account linking is optional. See [Authentication](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#authentication).
 - **Origin check:** requests that carry a browser `Origin` header from another site are rejected with `403`. Connect from an MCP client or server, not from a web page's JavaScript.
 - **Limits:** 32 KiB request body. About 180 requests per minute per connection or IP address (`429` with `Retry-After` when exceeded).
 
@@ -304,7 +306,7 @@ Rules that prevent most errors:
 
 ## Tool reference
 
-All money fields are integer SGD cents. On success, every tool returns `structuredContent` plus the same JSON as a text block. On failure it returns `isError: true` with `{"error": {"code", "message"}}`; see [Errors](#errors).
+All money fields are integer SGD cents. On success, every tool returns `structuredContent` plus the same JSON as a text block. On failure it returns `isError: true` with `{"error": {"code", "message"}}`; see [Errors](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#errors).
 
 | Tool | Title | Read-only | OAuth scope (only when account-linked) | On `/mcp/catalog` |
 | --- | --- | --- | --- | --- |
@@ -556,10 +558,10 @@ An unknown tool name returns a JSON-RPC `InvalidParams` error.
 
 ## Related
 
-- [REST API](api.md): the same operations over plain HTTP
-- [CLI](cli.md): the same operations from a terminal
-- [FAQ](faq.md)
-- [MCP examples](../examples/mcp/): curl, TypeScript and Python clients
+- [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md): the same operations over plain HTTP
+- [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md): the same operations from a terminal
+- [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md)
+- [MCP examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/mcp/): curl, TypeScript and Python clients
 - Agent guide on the store: [tanatasa.sg/ai-agent-docs](https://tanatasa.sg/ai-agent-docs)
 
 ---
@@ -570,9 +572,9 @@ An unknown tool name returns a JSON-RPC `InvalidParams` error.
 
 **Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
 
-The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's skincare and beauty catalog, managing carts and creating buyer checkout links. It exposes the same ten operations as the [Tanatasa MCP server](mcp.md) and the [Tanatasa CLI](cli.md).
+The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's skincare and beauty catalog, managing carts and creating buyer checkout links. It exposes the same ten operations as the [Tanatasa MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md) and the [Tanatasa CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md).
 
-Other pages: [README](../README.md) · [MCP server](mcp.md) · [CLI](cli.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
+Other pages: [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/README.md) · [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md) · [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md) · [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md) · [Examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
 ## Base URL and specification
 
@@ -601,7 +603,7 @@ The OpenAPI document is generated from the same schemas the server validates aga
 | POST | `/checkout-session` | `checkout_session` | `{"checkout_session": {"items": [...]}, "idempotency_key"}` |
 | GET | `/orders/{order_id}` | `get_order` | |
 
-Parameter limits and response fields are the same as the MCP tools. See the [tool reference](mcp.md#tool-reference). REST differences:
+Parameter limits and response fields are the same as the MCP tools. See the [tool reference](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#tool-reference). REST differences:
 
 - Path identifiers come from the URL. If the body repeats one with a different value, the request is rejected (`422 invalid_input`).
 - Query values are strings. `in_stock` must be exactly `true` or `false`. `page`, `limit`, `min_price` and `max_price` must be integers.
@@ -669,7 +671,7 @@ curl "$API/orders/$ORDER_ID" -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN"
 
 Give the buyer the complete `checkout_url`, including everything after `#`. On tanatasa.sg the buyer reviews the items, enters contact and Singapore delivery details, checks the total and pays through Stripe. The link expires one hour after creation.
 
-A runnable version is in [`examples/rest/guest-cart.sh`](../examples/rest/guest-cart.sh).
+A runnable version is in [`examples/rest/guest-cart.sh`](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/rest/guest-cart.sh).
 
 ## Errors
 
@@ -693,7 +695,7 @@ Schema validation errors add `error.details` (a list of issues).
 | 429 | `rate_limit_exceeded`; wait for the number of seconds in `Retry-After` |
 | 503 | `service_unavailable`, `not_configured`; retry, and for checkout reuse the same `idempotency_key` |
 
-What each code means and how to recover: [MCP error table](mcp.md#errors).
+What each code means and how to recover: [MCP error table](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#errors).
 
 ## Rate limits and caching
 
@@ -710,10 +712,10 @@ What each code means and how to recover: [MCP error table](mcp.md#errors).
 
 ## Related
 
-- [MCP server and tool reference](mcp.md)
-- [CLI](cli.md)
-- [FAQ](faq.md)
-- [REST examples](../examples/rest/)
+- [MCP server and tool reference](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md)
+- [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md)
+- [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md)
+- [REST examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/rest/)
 - OAuth metadata: <https://tanatasa.sg/.well-known/oauth-authorization-server>
 
 ---
@@ -724,9 +726,9 @@ What each code means and how to recover: [MCP error table](mcp.md#errors).
 
 **Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
 
-The Tanatasa CLI (`tanatasa`) runs Tanatasa's shopping operations from a terminal or shell script. It is a thin, dependency-free client for the [Tanatasa REST API](api.md). Every command prints one JSON document, so it suits scripts, `jq` and agents that can run shell commands but have no MCP.
+The Tanatasa CLI (`tanatasa`) runs Tanatasa's shopping operations from a terminal or shell script. It is a thin, dependency-free client for the [Tanatasa REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md). Every command prints one JSON document, so it suits scripts, `jq` and agents that can run shell commands but have no MCP.
 
-Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
+Other pages: [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/README.md) · [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md) · [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md) · [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md) · [Examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
 ## Install
 
@@ -803,7 +805,7 @@ tanatasa checkout <cart-id> --file checkout.json
 tanatasa order <order-id>
 ```
 
-A script version that uses `jq` is in [`examples/cli/shop.sh`](../examples/cli/shop.sh).
+A script version that uses `jq` is in [`examples/cli/shop.sh`](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/cli/shop.sh).
 
 ## Behaviour
 
@@ -816,9 +818,9 @@ A script version that uses `jq` is in [`examples/cli/shop.sh`](../examples/cli/s
 
 ## Related
 
-- [REST API](api.md): what the CLI calls underneath
-- [MCP server](mcp.md): for MCP-capable assistants
-- [FAQ](faq.md)
+- [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md): what the CLI calls underneath
+- [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md): for MCP-capable assistants
+- [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md)
 
 ---
 
@@ -828,7 +830,7 @@ A script version that uses `jq` is in [`examples/cli/shop.sh`](../examples/cli/s
 
 **Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
 
-Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md) · [CLI](cli.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
+Other pages: [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/README.md) · [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md) · [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md) · [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md) · [Examples](https://github.com/tanatasa-beauty/tanatasa/blob/main/examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
 ## General
 
@@ -842,7 +844,7 @@ Yes. Tanatasa's MCP server is at `https://tanatasa.sg/mcp` and uses the Streamab
 
 ### Does Tanatasa have a public API?
 
-Yes. The Tanatasa Agent Shopping API is a JSON REST API at `https://tanatasa.sg/agent/v1`. Its OpenAPI 3.1 specification is at `https://tanatasa.sg/agent/v1/openapi.json`. See [api.md](api.md).
+Yes. The Tanatasa Agent Shopping API is a JSON REST API at `https://tanatasa.sg/agent/v1`. Its OpenAPI 3.1 specification is at `https://tanatasa.sg/agent/v1/openapi.json`. See [api.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md).
 
 ### Is the Tanatasa MCP server free? Do I need an API key?
 
@@ -865,21 +867,21 @@ It cannot take payment, change a past order or ship outside Singapore.
 
 ### How do I connect Tanatasa to Claude?
 
-In Claude Code, run `claude mcp add --transport http tanatasa https://tanatasa.sg/mcp`. In claude.ai or Claude Desktop, open Settings → Connectors → Add custom connector, and enter `https://tanatasa.sg/mcp`. Full steps are in [mcp.md](mcp.md#how-to-connect-tanatasa-to-claude-code).
+In Claude Code, run `claude mcp add --transport http tanatasa https://tanatasa.sg/mcp`. In claude.ai or Claude Desktop, open Settings → Connectors → Add custom connector, and enter `https://tanatasa.sg/mcp`. Full steps are in [mcp.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#how-to-connect-tanatasa-to-claude-code).
 
 ### How do I connect Tanatasa to ChatGPT?
 
-See [How to connect Tanatasa to ChatGPT](mcp.md#how-to-connect-tanatasa-to-chatgpt). If your plan supports custom MCP connectors, use the URL `https://tanatasa.sg/mcp` with no authentication.
+See [How to connect Tanatasa to ChatGPT](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#how-to-connect-tanatasa-to-chatgpt). If your plan supports custom MCP connectors, use the URL `https://tanatasa.sg/mcp` with no authentication.
 
 ### How do I add Tanatasa to Cursor or VS Code?
 
-For Cursor, add `{"mcpServers": {"tanatasa": {"url": "https://tanatasa.sg/mcp"}}}` to `~/.cursor/mcp.json`. For VS Code, add `{"servers": {"tanatasa": {"type": "http", "url": "https://tanatasa.sg/mcp"}}}` to `.vscode/mcp.json`. More clients are covered in [mcp.md](mcp.md#how-to-connect-tanatasa-to-your-ai-assistant).
+For Cursor, add `{"mcpServers": {"tanatasa": {"url": "https://tanatasa.sg/mcp"}}}` to `~/.cursor/mcp.json`. For VS Code, add `{"servers": {"tanatasa": {"type": "http", "url": "https://tanatasa.sg/mcp"}}}` to `.vscode/mcp.json`. More clients are covered in [mcp.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#how-to-connect-tanatasa-to-your-ai-assistant).
 
 ### Why does my MCP client fail to connect to Tanatasa?
 
 The most common causes:
 
-- **The client only supports the older HTTP+SSE transport.** Tanatasa uses stateless Streamable HTTP and answers `GET` with `405`. Use [`mcp-remote`](mcp.md#stdio-only-clients-mcp-remote) or a newer client.
+- **The client only supports the older HTTP+SSE transport.** Tanatasa uses stateless Streamable HTTP and answers `GET` with `405`. Use [`mcp-remote`](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md#stdio-only-clients-mcp-remote) or a newer client.
 - **The request comes from browser JavaScript on another website.** It is rejected because of its `Origin` header.
 - **The client sent an invalid bearer token.** Remove the token; guest shopping needs none.
 
@@ -941,4 +943,4 @@ No. This repository contains documentation and examples only.
 
 ### How do I report a bug or security issue?
 
-Report documentation and API bugs as [GitHub issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security issues privately, as described in [SECURITY.md](../SECURITY.md).
+Report documentation and API bugs as [GitHub issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security issues privately, as described in [SECURITY.md](https://github.com/tanatasa-beauty/tanatasa/blob/main/SECURITY.md).
