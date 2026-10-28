@@ -2,7 +2,7 @@
 
 **Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
 
-The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's skincare and beauty catalog, managing carts and creating buyer checkout links. It exposes the same ten operations as the [Tanatasa MCP server](mcp.md) and the [Tanatasa CLI](cli.md).
+The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's skincare and beauty catalog, managing carts and creating buyer checkout links. It exposes the same thirteen operations as the [Tanatasa MCP server](mcp.md) and the [Tanatasa CLI](cli.md).
 
 Other pages: [README](../README.md) · [MCP server](mcp.md) · [CLI](cli.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
@@ -18,6 +18,17 @@ Other pages: [README](../README.md) · [MCP server](mcp.md) · [CLI](cli.md) · 
 
 The OpenAPI document is generated from the same schemas the server validates against, so it is always current. Use it to generate a typed client.
 
+
+## Use the same cart on the website and with an agent
+
+Cart responses include a private `cart_url` on the normal /cart page; checkout_url opens the normal /checkout page. The website and MCP/API/CLI use the same versioned cart. Browser edits require a fresh get_cart and quote, then a new checkout revision. Payment preparation freezes cart edits until resolved or expired.
+
+To start on the website, choose **Continue with an agent** on /cart and privately share its cart_id and guest_token. Use them with get_cart, not create_cart or checkout_session. This access lasts 24 hours and is limited to that cart and its new checkout/purchase status. The buyer can choose **Save details and return to agent** on checkout; read get_checkout again for the current details_version before requesting approval for payment.
+
+Guest shopping needs no account login. A guest token is private shopping-session access, not account authentication. Never put tokens in URLs, public messages or logs. The CLI does not persist guest tokens automatically; retain them securely. The buyer can re-share the same cart from its cart_url if agent session access was lost.
+
+After buyer approval of current details and total, prepare_payment creates a hosted Stripe payment_url without charging. The buyer, or a capable agent with explicit purchase authorization, completes that hosted page. There is no direct-charge API. Only webhook-backed get_order status confirms payment.
+
 ## Endpoints
 
 | Method | Path | Operation | Body / query |
@@ -30,6 +41,9 @@ The OpenAPI document is generated from the same schemas the server validates aga
 | PUT | `/carts/{cart_id}/coupon` | `set_cart_coupon` | `{"version", "coupon_code"}` (string or `null`) |
 | GET | `/carts/{cart_id}/quote` | `quote_cart` | |
 | POST | `/carts/{cart_id}/checkout` | `create_checkout` | `{"version", "expected_total", "idempotency_key"}` |
+| GET | `/checkouts/{checkout_id}` | `get_checkout` | |
+| PUT | `/checkouts/{checkout_id}/details` | `set_checkout_details` | `{details_version, details}` |
+| POST | `/checkouts/{checkout_id}/payment` | `prepare_payment` | `{details_version, expected_total, idempotency_key, buyer_confirmed:true}` |
 | POST | `/checkout-session` | `checkout_session` | `{"checkout_session": {"items": [...]}, "idempotency_key"}` |
 | GET | `/orders/{order_id}` | `get_order` | |
 
@@ -92,7 +106,7 @@ curl "$API/carts/$CART_ID/quote" -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN"
 curl -X POST "$API/carts/$CART_ID/checkout" \
   -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN" -H 'Content-Type: application/json' \
   -d '{"version":2,"expected_total":4188,"idempotency_key":"purchase-20261023-1"}'
-# {"checkout_id":"…","order_id":"…","checkout_url":"https://tanatasa.sg/checkout/agent#…",
+# {"checkout_id":"…","order_id":"…","checkout_url":"https://tanatasa.sg/checkout#…",
 #  "handoff_options":[…],"expires_at":"…","total":4188,"payment_status":"awaiting_customer",…}
 
 # 6. Check status later

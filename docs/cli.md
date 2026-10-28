@@ -6,6 +6,17 @@ The Tanatasa CLI (`tanatasa`) runs Tanatasa's shopping operations from a termina
 
 Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
+
+## Use the same cart on the website and with an agent
+
+Cart responses include a private `cart_url` on the normal /cart page; checkout_url opens the normal /checkout page. The website and MCP/API/CLI use the same versioned cart. Browser edits require a fresh get_cart and quote, then a new checkout revision. Payment preparation freezes cart edits until resolved or expired.
+
+To start on the website, choose **Continue with an agent** on /cart and privately share its cart_id and guest_token. Use them with get_cart, not create_cart or checkout_session. This access lasts 24 hours and is limited to that cart and its new checkout/purchase status. The buyer can choose **Save details and return to agent** on checkout; read get_checkout again for the current details_version before requesting approval for payment.
+
+Guest shopping needs no account login. A guest token is private shopping-session access, not account authentication. Never put tokens in URLs, public messages or logs. The CLI does not persist guest tokens automatically; retain them securely. The buyer can re-share the same cart from its cart_url if agent session access was lost.
+
+After buyer approval of current details and total, prepare_payment creates a hosted Stripe payment_url without charging. The buyer, or a capable agent with explicit purchase authorization, completes that hosted page. There is no direct-charge API. Only webhook-backed get_order status confirms payment.
+
 ## Install
 
 Requires **Node.js 20 or later**. The CLI uses no npm dependencies.
@@ -18,7 +29,7 @@ npm install --global @tanatasa/cli
 npx @tanatasa/cli --help
 ```
 
-For reproducible scripts, pin a version: `npx @tanatasa/cli@1.0.0 --version`.
+For reproducible scripts, pin a version: `npx @tanatasa/cli@1.0.2 --version`.
 The source is public in [`cli/`](../cli/). Maintainers can find the release
 workflow in [`cli/PUBLISHING.md`](../cli/PUBLISHING.md).
 
@@ -27,6 +38,17 @@ Check the install:
 ```bash
 tanatasa --help
 ```
+
+## Checkout details and payment in CLI 1.0.2
+
+```sh
+tanatasa checkout get <checkout-id>
+tanatasa checkout details <checkout-id> --file details.json
+tanatasa checkout payment <checkout-id> --file payment.json
+tanatasa order <order-id>
+```
+
+Use get_checkout for the latest details_version. details.json contains details_version and buyer-approved contact/delivery details. payment.json contains details_version, expected_total in cents, a stable idempotency_key, and buyer_confirmed:true after explicit approval. See [exact schemas](https://tanatasa.sg/agent/v1/tools). Retry the same input and key. The hosted URL is not a charge; check get_order for webhook confirmation.
 
 ## Configuration
 

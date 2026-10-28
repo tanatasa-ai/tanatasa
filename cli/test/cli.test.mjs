@@ -31,6 +31,9 @@ const tools = [
   { name: 'search_products', method: 'GET', path: '/agent/v1/products' },
   { name: 'set_cart_item', method: 'PUT', path: '/agent/v1/carts/:cart_id/items/:variant_id' },
   { name: 'create_checkout', method: 'POST', path: '/agent/v1/carts/:cart_id/checkout' },
+  { name: 'get_checkout', method: 'GET', path: '/agent/v1/checkouts/:checkout_id' },
+  { name: 'set_checkout_details', method: 'PUT', path: '/agent/v1/checkouts/:checkout_id/details' },
+  { name: 'prepare_payment', method: 'POST', path: '/agent/v1/checkouts/:checkout_id/payment' },
 ];
 function fakeFetch() {
   const calls = [];
@@ -90,4 +93,23 @@ test('rejects insecure remote endpoints, bad flags, conflicting resources and am
 test('surfaces structured API errors', async () => {
   const fetchImpl = async (url) => String(url).endsWith('/tools') ? Response.json({ tools }) : Response.json({ error: { code: 'cart_changed', message: 'Get the latest version' } }, { status: 409 });
   await assert.rejects(run(['cart', 'set', 'c', '11', '1', '--version', '1'], { env, fetchImpl }), (error) => error.result.status === 409 && error.result.error.code === 'cart_changed');
+});
+
+test('checkout details and payment use the same guest REST workflow without sending capabilities in URLs', async () => {
+  const publicEnv = { TANATASA_API_URL: env.TANATASA_API_URL, TANATASA_GUEST_TOKEN: 'a'.repeat(64) };
+  const fake = fakeFetch();
+  await run(['checkout', 'get', 'checkout-1'], { env: publicEnv, ...fake });
+  assert.equal(fake.calls[1].url, 'http://localhost:8787/agent/v1/checkouts/checkout-1');
+  assert.equal(fake.calls[1].headers['X-Tanatasa-Guest-Token'], publicEnv.TANATASA_GUEST_TOKEN);
+  const save = fakeFetch();
+  await run(['checkout', 'details', 'checkout-1', '--json', '{"details_version":0,"details":{}}'], { env: publicEnv, ...save });
+  assert.equal(save.calls[1].method, 'PUT');
+  assert.deepEqual(JSON.parse(save.calls[1].body), { details_version: 0, details: {} });
+  const payment = fakeFetch();
+  const input = { details_version: 1, expected_total: 3060, idempotency_key: 'payment-1', buyer_confirmed: true };
+  await run(['checkout', 'payment', 'checkout-1', '--stdin'], { env: publicEnv, ...payment, stdin: Readable.from([JSON.stringify(input)]) });
+  assert.equal(payment.calls[1].url, 'http://localhost:8787/agent/v1/checkouts/checkout-1/payment');
+  assert.deepEqual(JSON.parse(payment.calls[1].body), input);
+  assert.equal(payment.calls[1].headers.Authorization, undefined);
+  await assert.rejects(run(['checkout', 'details', 'checkout-1', '--json', '{"checkout_id":"other"}'], { env: publicEnv, ...fakeFetch() }), /Conflicting checkout_id/);
 });

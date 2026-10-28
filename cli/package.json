@@ -1,7 +1,7 @@
 {
   "name": "@tanatasa/cli",
-  "version": "1.0.1",
-  "description": "Search Tanatasa products, build guest carts and create buyer checkout links from the terminal.",
+  "version": "1.0.2",
+  "description": "Search Tanatasa products, share guest carts with the website and prepare hosted Stripe checkout.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -25,14 +25,6 @@
     "url": "https://github.com/tanatasa-beauty/tanatasa/issues"
   },
   "author": "WELL IN STYLE PTE. LTD.",
-  "keywords": [
-    "tanatasa",
-    "cli",
-    "shopping",
-    "skincare",
-    "singapore",
-    "ai-agents"
-  ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
