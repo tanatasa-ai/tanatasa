@@ -1,6 +1,7 @@
 [
   {
     "name": "search_products",
+    "description": "Search public sellable variants by words, brand/category/purpose, skin type, ingredient, availability and price in SGD cents. Use variant_id when adding items; follow next_page for more results.",
     "method": "GET",
     "path": "/agent/v1/products",
     "input_schema": {
@@ -65,6 +66,7 @@
   },
   {
     "name": "get_product",
+    "description": "Get product descriptions, ingredients, usage, images and variants. product accepts a product ID, product slug, variant slug or SKU.",
     "method": "GET",
     "path": "/agent/v1/products/:product",
     "input_schema": {
@@ -85,6 +87,7 @@
   },
   {
     "name": "create_cart",
+    "description": "Create an empty persistent cart without account login. Save cart_id, version and the private guest_token if returned. Pass guest_token on subsequent shopping calls. Account authentication is optional.",
     "method": "POST",
     "path": "/agent/v1/carts",
     "input_schema": {
@@ -102,6 +105,7 @@
   },
   {
     "name": "get_cart",
+    "description": "Read cart items, coupon, version and checkout lock.",
     "method": "GET",
     "path": "/agent/v1/carts/:cart_id",
     "input_schema": {
@@ -126,6 +130,7 @@
   },
   {
     "name": "set_cart_item",
+    "description": "Add or update a variant using an absolute quantity; zero removes it. Supply the current cart version. Maximum 20 variants and 99 units each; availability is checked.",
     "method": "PUT",
     "path": "/agent/v1/carts/:cart_id/items/:variant_id",
     "input_schema": {
@@ -166,6 +171,7 @@
   },
   {
     "name": "set_cart_coupon",
+    "description": "Apply a coupon code or null to remove it. Supply current cart version. Auto discounts also apply.",
     "method": "PUT",
     "path": "/agent/v1/carts/:cart_id/coupon",
     "input_schema": {
@@ -208,6 +214,7 @@
   },
   {
     "name": "quote_cart",
+    "description": "Reprice the cart with current stock, scheduled prices and discounts. All amounts are SGD cents; shipping is free within Singapore. Stock is not reserved. Save version and total for checkout.",
     "method": "GET",
     "path": "/agent/v1/carts/:cart_id/quote",
     "input_schema": {
@@ -232,6 +239,7 @@
   },
   {
     "name": "create_checkout",
+    "description": "Prepare a checkout for a quoted cart without account login. Requires quoted version, expected_total in SGD cents and an idempotency_key. Locks the cart and returns checkout_id, details_version and a review link. Contact/delivery details can be added through set_checkout_details or the browser. Does not charge a payment.",
     "method": "POST",
     "path": "/agent/v1/carts/:cart_id/checkout",
     "input_schema": {
@@ -271,7 +279,200 @@
     }
   },
   {
+    "name": "get_checkout",
+    "description": "Read this shopping session's checkout, saved contact/delivery details, details_version, total and available handoff paths. Delivery details and payment links are private. Account login is optional.",
+    "method": "GET",
+    "path": "/agent/v1/checkouts/:checkout_id",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "checkout_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "checkout_id"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "set_checkout_details",
+    "description": "Save buyer-supplied contact and Singapore delivery details for this new checkout. Requires its current details_version; increments it. Does not charge a payment or modify prior purchases. Details are frozen after payment preparation starts.",
+    "method": "PUT",
+    "path": "/agent/v1/checkouts/:checkout_id/details",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "checkout_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "details_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "contact": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "email": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 254
+                },
+                "phone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                }
+              },
+              "required": [
+                "name",
+                "email",
+                "phone"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "type": "object",
+              "properties": {
+                "recipient_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "recipient_phone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "address_line1": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "address_line2": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "unit_number": {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                "no_unit_number": {
+                  "type": "boolean"
+                },
+                "city": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "postal_code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 6
+                },
+                "country": {
+                  "type": "string",
+                  "const": "SG"
+                }
+              },
+              "required": [
+                "recipient_name",
+                "recipient_phone",
+                "address_line1",
+                "no_unit_number",
+                "postal_code",
+                "country"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "contact",
+            "delivery"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "checkout_id",
+        "details_version",
+        "details"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "prepare_payment",
+    "description": "Create or recover a hosted Stripe payment URL after the buyer confirms the current delivery details and expected_total in SGD cents. Requires buyer_confirmed=true, current details_version and an idempotency_key retained on exact retries. Creates an unpaid order but does not charge a payment. The buyer or an authorized capable agent completes hosted Stripe checkout. get_order reports webhook-confirmed payment.",
+    "method": "POST",
+    "path": "/agent/v1/checkouts/:checkout_id/payment",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "checkout_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "details_version": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "expected_total": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "buyer_confirmed": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "checkout_id",
+        "details_version",
+        "expected_total",
+        "idempotency_key",
+        "buyer_confirmed"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
     "name": "get_order",
+    "description": "Get payment and fulfilment status and tracking for a purchase created by this guest session or account connection. Supply guest_token for guest purchases. Payment confirmation comes from Stripe webhooks. Does not update prior purchases.",
     "method": "GET",
     "path": "/agent/v1/orders/:order_id",
     "input_schema": {
@@ -297,6 +498,7 @@
   },
   {
     "name": "checkout_session",
+    "description": "Prepare checkout from product feed item IDs and quantities without account login. For guests, call create_cart first and supply its guest_token. Optional item metadata is not authoritative. Returns a Tanatasa review link. Use get_checkout and set_checkout_details for buyer-approved delivery details, then prepare_payment after explicit approval of the current details and total. Supply a new idempotency_key per purchase and retain it and guest_token on retries.",
     "method": "POST",
     "path": "/agent/v1/checkout-session",
     "input_schema": {

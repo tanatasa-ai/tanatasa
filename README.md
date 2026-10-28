@@ -6,7 +6,7 @@ This repository is the developer documentation for Tanatasa's agent shopping int
 
 | Interface | Address | Login needed |
 | --- | --- | --- |
-| MCP server (full shopping, 10 tools) | `https://tanatasa.sg/mcp` | No |
+| MCP server (full shopping, 13 tools) | `https://tanatasa.sg/mcp` | No |
 | MCP server (catalog only, 2 tools) | `https://tanatasa.sg/mcp/catalog` | No |
 | REST API | `https://tanatasa.sg/agent/v1` | No |
 | OpenAPI 3.1 spec | [`https://tanatasa.sg/agent/v1/openapi.json`](https://tanatasa.sg/agent/v1/openapi.json) | No |

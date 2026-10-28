@@ -12,7 +12,7 @@ Tanatasa is a Singapore-based skincare and beauty store at [tanatasa.sg](https:/
 
 ### Does Tanatasa have an MCP server?
 
-Yes. Tanatasa's MCP server is at `https://tanatasa.sg/mcp` and uses the Streamable HTTP transport. It has 10 tools: `search_products`, `get_product`, `create_cart`, `get_cart`, `set_cart_item`, `set_cart_coupon`, `quote_cart`, `create_checkout`, `checkout_session` and `get_order`. A read-only endpoint with only the two search tools is at `https://tanatasa.sg/mcp/catalog`.
+Yes. Tanatasa's MCP server is at `https://tanatasa.sg/mcp` and uses the Streamable HTTP transport. It has 13 tools: `search_products`, `get_product`, `create_cart`, `get_cart`, `set_cart_item`, `set_cart_coupon`, `quote_cart`, `create_checkout`, `checkout_session`, `get_checkout`, `set_checkout_details`, `prepare_payment` and `get_order`. A read-only endpoint with only the two search tools is at `https://tanatasa.sg/mcp/catalog`.
 
 ### Does Tanatasa have a public API?
 
@@ -65,7 +65,7 @@ No. Carts, checkout links and order status all work without an account. `create_
 
 ### Can an AI agent pay for a Tanatasa order?
 
-No. Tanatasa agents prepare a checkout link but never take payment. The buyer opens the link on tanatasa.sg, enters contact and delivery details, reviews the total and approves payment on Stripe. Tanatasa does not offer embedded or delegated payment inside an AI assistant.
+After explicit buyer approval of saved contact/delivery details and the current total, an agent can call prepare_payment to create a hosted Stripe link. The buyer, or a capable authorized agent, completes that hosted page. Preparing the URL does not charge; confirmation comes only from the payment webhook. There is no direct-charge or embedded payment API.
 
 ### What currency are Tanatasa API prices in?
 

@@ -20,15 +20,26 @@ TANATASA_AGENT_TOKEN optionally uses a trusted token or OAuth access token.
   tanatasa cart coupon <cart-id> <code-or-null> --version <version>
   tanatasa cart quote <cart-id>
   tanatasa checkout <cart-id> --file checkout.json
+  tanatasa checkout get <checkout-id>
+  tanatasa checkout details <checkout-id> --file details.json
+  tanatasa checkout payment <checkout-id> --file payment.json
   tanatasa order <order-id>
   tanatasa call <tool-name> --json '{...}'
   tanatasa call <tool-name> --file input.json
   tanatasa call <tool-name> --stdin
 
 Checkout input: version, expected_total, idempotency_key.
-Keep the same key and exact input on retries. Give the full checkout_url to the
-buyer to review the cart and enter delivery details on Tanatasa before payment.
+Keep the same key and exact input on retries. Save buyer-supplied contact/delivery
+details with checkout details, then confirm the current total and details_version.
+checkout payment requires buyer_confirmed=true and returns a hosted Stripe URL;
+it does not charge a payment. The buyer or an explicitly authorized capable agent
+completes hosted payment. Check order for webhook-confirmed status. The full
+checkout_url also supports browser review and entry of delivery details.
 Quantity is absolute; zero removes. Use the latest cart version after every edit.
+cart_url and checkout_url open the normal storefront pages with this same cart.
+To resume a website cart, choose "Continue with an agent" on /cart and use its
+private cart_id and guest_token with cart get. Browser edits require a fresh quote.
+The CLI does not persist guest tokens: retain them securely between invocations.
 API errors go to stderr with exit code 1. Use --url only for a trusted server.
 `;
 const flags = new Set(['url', 'json', 'file', 'stdin', 'version', 'brand', 'category', 'purpose', 'skin-type', 'ingredient', 'min-price', 'max-price', 'page', 'limit', 'in-stock']);
@@ -95,6 +106,12 @@ export async function run(argv, { env = process.env, fetchImpl = fetch, stdin = 
     if (o['in-stock'] != null) { if (!['true', 'false'].includes(o['in-stock'])) throw new Error('--in-stock must be true or false'); args.in_stock = o['in-stock'] === 'true'; }
   } else if (p[0] === 'product') { exact(2); name = 'get_product'; args = { product: p[1] }; }
   else if (p[0] === 'order') { exact(2); name = 'get_order'; args = { order_id: p[1] }; }
+  else if (p[0] === 'checkout' && ['get', 'details', 'payment'].includes(p[1])) {
+    exact(3); name = { get: 'get_checkout', details: 'set_checkout_details', payment: 'prepare_payment' }[p[1]];
+    args = p[1] === 'get' ? {} : await inputJson(o, stdin);
+    if (args.checkout_id && args.checkout_id !== p[2]) throw new Error('Conflicting checkout_id');
+    args.checkout_id = p[2];
+  }
   else if (p[0] === 'checkout') { exact(2); name = 'create_checkout'; args = await inputJson(o, stdin); if (args.cart_id && args.cart_id !== p[1]) throw new Error('Conflicting cart_id'); args.cart_id = p[1]; }
   else if (p[0] === 'cart') {
     const action = p[1];

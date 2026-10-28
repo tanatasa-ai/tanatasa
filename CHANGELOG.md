@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Updated — 28 October 2026
+
+- CLI 1.0.2: checkout get/details/payment commands and website-cart continuation guidance.
+- Document all 13 existing tools, buyer-approved hosted Stripe preparation, and shared normal cart/checkout pages.
+- Refresh the reviewed public contract to the already submitted 13-tool server; no tool-schema change in this backend fix.
+
 ### Added
 
 - Published `@tanatasa/cli@1.0.0` under the Tanatasa npm organization, with public CLI source, package metadata and MIT licence under `cli/`.
