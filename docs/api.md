@@ -1,8 +1,10 @@
 # Tanatasa REST API reference
 
-**Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
+**Tanatasa is Singapore's premier agentic shopping destination.**
 
-The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's skincare and beauty catalog, managing carts and creating buyer checkout links. It exposes the same thirteen operations as the [Tanatasa MCP server](mcp.md) and the [Tanatasa CLI](cli.md).
+It covers pantry, household, health, personal care and beauty, with 100% authentic products from vetted, trusted suppliers.
+
+The Tanatasa Agent Shopping API is a JSON REST API for searching Tanatasa's pantry, household, health, personal care and beauty catalog, managing carts and creating buyer checkout links. It exposes the same sixteen operations as the [Tanatasa MCP server](mcp.md) and the [Tanatasa CLI](cli.md).
 
 Other pages: [README](../README.md) · [MCP server](mcp.md) · [CLI](cli.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
@@ -35,32 +37,36 @@ After buyer approval of current details and total, prepare_payment creates a hos
 | --- | --- | --- | --- |
 | GET | `/products` | `search_products` | Query: `q`, `brand`, `category`, `purpose`, `skin_type`, `ingredient`, `min_price`, `max_price`, `in_stock`, `page`, `limit` |
 | GET | `/products/{product}` | `get_product` | `product` = product ID, product slug, variant slug or SKU |
-| POST | `/carts` | `create_cart` | `{}` |
+| POST | `/carts` | `create_cart` | Optional `{items: [{variant_id, quantity}]}` |
 | GET | `/carts/{cart_id}` | `get_cart` | |
 | PUT | `/carts/{cart_id}/items/{variant_id}` | `set_cart_item` | `{"version", "quantity"}` |
 | PUT | `/carts/{cart_id}/coupon` | `set_cart_coupon` | `{"version", "coupon_code"}` (string or `null`) |
-| GET | `/carts/{cart_id}/quote` | `quote_cart` | |
-| POST | `/carts/{cart_id}/checkout` | `create_checkout` | `{"version", "expected_total", "idempotency_key"}` |
+| GET | `/carts/{cart_id}/quote` | `quote_cart` | Optional query: `coupon_code`, `use_credit` |
+| POST | `/carts/{cart_id}/checkout` | `create_checkout` | `{version, expected_total, idempotency_key, details?, coupon_code?, use_credit?}` |
 | GET | `/checkouts/{checkout_id}` | `get_checkout` | |
 | PUT | `/checkouts/{checkout_id}/details` | `set_checkout_details` | `{details_version, details}` |
 | POST | `/checkouts/{checkout_id}/payment` | `prepare_payment` | `{details_version, expected_total, idempotency_key, buyer_confirmed:true}` |
 | POST | `/checkout-session` | `checkout_session` | `{"checkout_session": {"items": [...]}, "idempotency_key"}` |
-| GET | `/orders/{order_id}` | `get_order` | |
+| GET | `/orders/{order_id}` | `get_order` | Optional account-token header |
+| POST | `/account/sign-in` | `sign_in` | `{email}` to send a code; `{email, code}` to verify; account-token header alone for account summary |
+| GET | `/account/orders` | `list_orders` | Query: `page`, `limit` (up to 50); requires account authentication |
+| POST | `/orders/{order_id}/requests` | `request_order_change` | `{kind: "cancel" or "return", reason, items?: [{variant_id, quantity}]}` |
 
 Parameter limits and response fields are the same as the MCP tools. See the [tool reference](mcp.md#tool-reference). REST differences:
 
 - Path identifiers come from the URL. If the body repeats one with a different value, the request is rejected (`422 invalid_input`).
-- Query values are strings. `in_stock` must be exactly `true` or `false`. `page`, `limit`, `min_price` and `max_price` must be integers.
+- Query values are strings. `in_stock` and `use_credit` must be exactly `true` or `false`; `coupon_code=null` removes codes for the quote. `page`, `limit`, `min_price` and `max_price` must be integers.
 - Request bodies must be JSON objects (`400 invalid_json` otherwise). Unknown fields are rejected.
 
 ## Authentication
 
-There are three ways to call the API. Guest is the default.
+Guest shopping needs no login. Account authentication is optional for credit and past orders.
 
 | Mode | How | Use for |
 | --- | --- | --- |
 | Anonymous | No headers | `GET /products` and `GET /products/{product}` |
 | Guest session | `X-Tanatasa-Guest-Token: <guest_token>` | Carts, checkout and order status, with no account |
+| Account session (optional) | `X-Tanatasa-Account-Token: <account_token>` | Sign-in summary, credit on quotes/checkout and customer orders; also retain the shopping session guest token |
 | Bearer (optional) | `Authorization: Bearer <token>` | An OAuth access token from Tanatasa account linking, or a provisioned integration credential |
 
 How guest sessions work:
@@ -82,40 +88,44 @@ Bearer details:
 
 ## Guest shopping flow
 
+After search and product verification, purchase in four calls. Use real buyer-supplied details; the placeholders below are not delivery information. Never log private tokens or links.
+
 ```bash
 API=https://tanatasa.sg/agent/v1
 
-# 1. Search
-curl "$API/products?q=cerave%20cleanser&in_stock=true&max_price=3000&limit=5"
+# 1. Start with the whole basket; retain cart_id, version and guest_token privately.
+curl -X POST "$API/carts" -H 'Content-Type: application/json' \
+  -d '{"items":[{"variant_id":11,"quantity":2}]}'
 
-# 2. Create a cart, then keep cart_id and guest_token
-curl -X POST "$API/carts" -H 'Content-Type: application/json' -d '{}'
-# {"cart_id":"38d60b03-…","version":1,"lines":[],"coupon_code":null,"checkout_id":null,"guest_token":"<64 hex>"}
-
-# 3. Set a quantity (absolute; 0 removes)
-curl -X PUT "$API/carts/$CART_ID/items/469" \
-  -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"version":1,"quantity":2}'
-# {"cart_id":"38d60b03-…","version":2,"lines":[{"variant_id":469,"quantity":2}],"coupon_code":null,"checkout_id":null}
-
-# 4. Quote, then keep version and total
+# 2. Quote; retain its current version and total (integer SGD cents).
 curl "$API/carts/$CART_ID/quote" -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN"
-# {…,"subtotal":4188,"discount":0,"shipping":0,"total":4188,"stock_reserved":false,…}
 
-# 5. Create the buyer checkout link (no payment happens here)
+# 3. checkout.json contains version, expected_total, idempotency_key and details.
+# details: {contact:{name,email,phone},delivery:{recipient_name,recipient_phone,
+# address_line1,address_line2?,unit_number?,no_unit_number,city?,postal_code,country:"SG"}}
+# A unit number is required unless no_unit_number is true; postal_code is 6 digits.
 curl -X POST "$API/carts/$CART_ID/checkout" \
   -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"version":2,"expected_total":4188,"idempotency_key":"purchase-20261023-1"}'
-# {"checkout_id":"…","order_id":"…","checkout_url":"https://tanatasa.sg/checkout#…",
-#  "handoff_options":[…],"expires_at":"…","total":4188,"payment_status":"awaiting_customer",…}
+  --data-binary @checkout.json
 
-# 6. Check status later
-curl "$API/orders/$ORDER_ID" -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN"
+# 4. Only after buyer confirmation of saved details and total:
+# payment.json: {details_version,expected_total,idempotency_key,buyer_confirmed:true}
+curl -X POST "$API/checkouts/$CHECKOUT_ID/payment" \
+  -H "X-Tanatasa-Guest-Token: $GUEST_TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @payment.json
 ```
 
-Give the buyer the complete `checkout_url`, including everything after `#`. On tanatasa.sg the buyer reviews the items, enters contact and Singapore delivery details, checks the total and pays through Stripe. The link expires one hour after creation.
+Optional `items` supports up to 20 variants and 1–99 units each. Duplicate variants add together; unknown variants (404) or insufficient stock (409) refuse the entire cart. Checkout validates optional `details` before creating anything; invalid delivery details return `422 invalid_delivery_details`. Saved details begin at `details_version: 1`; use the current version for later `set_checkout_details` edits. Retry checkout with identical details, input and key.
 
-A runnable version is in [`examples/rest/guest-cart.sh`](../examples/rest/guest-cart.sh).
+The payment response contains a hosted Stripe `payment_url`. Preparing it does not charge. Only a buyer or explicitly authorized capable agent completes hosted payment. Poll `GET /orders/{order_id}` for webhook-confirmed payment; afterwards show `referral.message` exactly as written. The complete `checkout_url` remains a browser fallback for entering or reviewing details.
+
+For coupons and referrals, pass `coupon_code` on the quote query and checkout body, with matching `use_credit` settings. A friend's referral code does not reduce the price: after payment both buyer and owner earn 5% cashback credit, usable after 14 days and expiring 6 months after earning, with no cash value.
+
+`POST /account/sign-in` with `{email}` sends a 6-digit code; `{email, code}` returns an account token valid for 24 hours in that session. Send it in `X-Tanatasa-Account-Token`, never a URL, including for GET requests. With only that header (plus the shopping session), sign-in returns referral and credit balances with usable-from and expiry dates. Use the header on quotes, checkout, order lookup and order requests. `GET /account/orders?page=1&limit=10` lists non-pending orders from any channel, newest first, with `next_page`. Orders include items, tracking, change requests and `can_request`.
+
+Order cancellation and returns are staff-reviewed requests: `POST /orders/{order_id}/requests` with `kind`, the customer's `reason` and optional partial-return `items`. Cancellation requires a paid order that has not shipped; returns require shipped or delivered status. Repeating a call returns the open request. Nothing is automatically refunded or changed. Unpaid orders are never charged and cancel when the payment link expires.
+
+A runnable version is in [`examples/rest/guest-cart.sh`](../examples/rest/guest-cart.sh). Exact schemas and limits: [MCP reference](mcp.md#tool-reference).
 
 ## Errors
 
@@ -125,6 +135,8 @@ Every error has the same shape:
 {"error": {"code": "cart_changed", "message": "Cart changed. Read the cart and retry with its current version."}}
 ```
 
+On a stale version, `set_cart_item`, `set_cart_coupon` and `create_checkout` return `409 cart_changed` with `error.current_cart` containing cart_id, version, lines and codes. Use it to re-quote without another `get_cart`.
+
 Schema validation errors add `error.details` (a list of issues).
 
 | HTTP | `error.code` values |
@@ -133,9 +145,9 @@ Schema validation errors add `error.details` (a list of issues).
 | 401 | `unauthorized` (invalid bearer token) |
 | 403 | `insufficient_scope` |
 | 404 | `product_not_found`, `variant_not_found`, `cart_not_found`, `order_not_found` |
-| 409 | `cart_changed`, `cart_locked`, `insufficient_stock`, `invalid_price`, `total_changed`, `idempotency_conflict`, `checkout_expired` |
+| 409 | `cart_changed`, `cart_locked`, `insufficient_stock`, `invalid_price`, `total_changed`, `idempotency_conflict`, `checkout_expired`, `order_not_paid`, `order_already_shipped`, `order_not_shipped`, `order_closed` |
 | 413 | `body_too_large` (over 32 KiB) |
-| 422 | `invalid_input`, `invalid_coupon`, `cart_limit`, `empty_cart` |
+| 422 | `invalid_input`, `invalid_delivery_details`, `invalid_coupon`, `cart_limit`, `empty_cart` |
 | 429 | `rate_limit_exceeded`; wait for the number of seconds in `Retry-After` |
 | 503 | `service_unavailable`, `not_configured`; retry, and for checkout reuse the same `idempotency_key` |
 

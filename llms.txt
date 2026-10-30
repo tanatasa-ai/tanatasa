@@ -1,9 +1,9 @@
 # Tanatasa
 
-> Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers. AI assistants can search the catalog, build guest carts, quote in SGD and create checkout links without an account or API key. Buyers pay on tanatasa.sg; agents never take payment.
+> Tanatasa is Singapore's premier agentic shopping destination. AI assistants can search the catalog, build guest carts, quote in SGD and create checkout links without an account or API key. The buyer or explicitly authorized capable agent completes hosted Stripe payment after confirming saved details and total. It covers pantry, household, health, personal care and beauty, with 100% authentic products from vetted, trusted suppliers.
 
 Key facts:
-- MCP server: https://tanatasa.sg/mcp (Streamable HTTP, stateless, 10 tools). Read-only catalog endpoint: https://tanatasa.sg/mcp/catalog (2 tools).
+- MCP server: https://tanatasa.sg/mcp (Streamable HTTP, stateless, 16 tools). Read-only catalog endpoint: https://tanatasa.sg/mcp/catalog (2 tools).
 - REST API: https://tanatasa.sg/agent/v1. OpenAPI 3.1: https://tanatasa.sg/agent/v1/openapi.json
 - Money is integer SGD cents (2094 = S$20.94). Delivery is Singapore only, with free shipping.
 - No login needed: create_cart returns a private guest_token. Pass it as a tool argument (MCP) or in the X-Tanatasa-Guest-Token header (REST), never in a URL.
@@ -13,25 +13,35 @@ Key facts:
 
 ## Docs
 
-- [README](https://github.com/tanatasa-beauty/tanatasa/blob/main/README.md): overview and 30-second quick starts
-- [MCP server](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/mcp.md): client setup (Claude, ChatGPT, Cursor, VS Code, Windsurf, Gemini CLI, Codex) and full tool reference
-- [REST API](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/api.md): endpoints, authentication, errors, rate limits
-- [CLI](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/cli.md): commands and examples
-- [FAQ](https://github.com/tanatasa-beauty/tanatasa/blob/main/docs/faq.md)
-- [Full docs in one file](https://raw.githubusercontent.com/tanatasa-beauty/tanatasa/main/llms-full.txt)
+- [README](https://github.com/tanatasa-ai/tanatasa/blob/main/README.md): overview and 30-second quick starts
+- [MCP server](https://github.com/tanatasa-ai/tanatasa/blob/main/docs/mcp.md): client setup (Claude, ChatGPT, Cursor, VS Code, Windsurf, Gemini CLI, Codex) and full tool reference
+- [REST API](https://github.com/tanatasa-ai/tanatasa/blob/main/docs/api.md): endpoints, authentication, errors, rate limits
+- [CLI](https://github.com/tanatasa-ai/tanatasa/blob/main/docs/cli.md): commands and examples
+- [FAQ](https://github.com/tanatasa-ai/tanatasa/blob/main/docs/faq.md)
+- [Full docs in one file](https://raw.githubusercontent.com/tanatasa-ai/tanatasa/main/llms-full.txt)
+
+Purchase after search: create_cart with items → quote_cart → create_checkout with details → prepare_payment after buyer confirmation of details and total. Stale edits/checkout return 409 cart_changed with error.current_cart, allowing a re-quote without get_cart.
+
+Optional account_token goes in X-Tanatasa-Account-Token over REST, never in a URL. A friend’s coupon_code earns both parties 5% cashback credit after payment, with nothing off the price. Credit is usable after 14 days, expires 6 months after earning and has no cash value. CLI 1.1.0 source includes account and order commands; npm remains pinned to 1.0.2 until publication.
 
 ## Tools
 
 - search_products: search by q, brand, category, purpose, skin_type, ingredient, min_price, max_price, in_stock, page, limit
 - get_product: details by product ID, product slug, variant slug or SKU
-- create_cart: new cart, plus guest_token for guests
+- create_cart: optional items [{variant_id, quantity}], up to 20 variants, 1–99 each; duplicate variants add together; whole-cart stock validation; returns guest_token for guests
 - get_cart: cart lines, coupon, version
 - set_cart_item: absolute quantity for a variant_id (0 removes); requires the current version
 - set_cart_coupon: apply a code, or null to remove it; requires the current version
-- quote_cart: subtotal, discounts, shipping, total
-- create_checkout: version, expected_total, idempotency_key → checkout_url, order_id
+- quote_cart: current version, subtotal, discounts, shipping, total; coupon_code previews a code; account_token enables credit unless use_credit=false
+- create_checkout: version, expected_total, idempotency_key; optional details saved at details_version 1, coupon_code, account_token, use_credit → checkout_url, order_id; identical input on retries
 - checkout_session: one-step checkout from tanatasa-variant-<id> feed IDs
-- get_order: payment status, fulfilment status and tracking
+- get_checkout: saved contact/delivery details, details_version and total
+- set_checkout_details: change details using current details_version
+- prepare_payment: buyer_confirmed=true with approved details_version and expected_total → hosted Stripe link; no charge until completed
+- get_order: payment, items, tracking, change_requests, can_request; account_token opens customer orders; show paid referral.message exactly as written
+- sign_in: email sends a 6-digit code; email+code returns a private session-only 24-hour account_token; token alone shows referral and credit balances with usable_from/expires_at
+- list_orders: signed-in customer’s non-pending orders across channels, newest first; page, limit up to 50, next_page
+- request_order_change: kind cancel for paid/unshipped or return for shipped/delivered, reason and optional items; staff review and email; never automatic refunds or order changes
 
 ## Store
 

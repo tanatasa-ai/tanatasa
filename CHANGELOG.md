@@ -1,8 +1,18 @@
 # Changelog
 
-**Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.** This changelog covers the public documentation in this repository and the interfaces it describes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/) and track the Tanatasa Agent Shopping API version.
+**Tanatasa is Singapore's premier agentic shopping destination.** This changelog covers the public documentation in this repository and the interfaces it describes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/) and track the Tanatasa Agent Shopping API version.
 
 ## [Unreleased]
+
+### Updated — 30 October 2026
+
+- Move the public developer repository to `tanatasa-ai`, retaining GitHub history and redirects.
+- Document all 16 production tools, including `sign_in`, `list_orders` and `request_order_change`.
+- Four-call purchase: basket `items`, inline checkout `details` and stale-version `current_cart` recovery.
+- Referral cashback credit: 5% for buyer and code owner after payment, usable after 14 days, expires after 6 months.
+- Account order lookup and staff-reviewed cancellation/return requests.
+- Prepare CLI 1.1.0 from the production app source; keep npm installation pinned to 1.0.2 until publication.
+- Update positioning to pantry, household, health, personal care and beauty.
 
 ### Updated — 28 October 2026
 
@@ -40,5 +50,5 @@
 - Guest shopping without an account was deployed to production on 20 October 2026. `create_cart` returns a `guest_token`, and OAuth account linking is optional.
 - Only the cart-review checkout handoff is available. Agents never take payment.
 
-[Unreleased]: https://github.com/tanatasa-beauty/tanatasa/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/tanatasa-beauty/tanatasa/releases/tag/v1.0.0
+[Unreleased]: https://github.com/tanatasa-ai/tanatasa/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/tanatasa-ai/tanatasa/releases/tag/v1.0.0

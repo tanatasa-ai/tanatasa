@@ -29,11 +29,15 @@ test('installed entry point runs through Unix-style npm symlinks', async (t) => 
 const env = { TANATASA_API_URL: 'http://localhost:8787', TANATASA_AGENT_TOKEN: 'test-token' };
 const tools = [
   { name: 'search_products', method: 'GET', path: '/agent/v1/products' },
+  { name: 'create_cart', method: 'POST', path: '/agent/v1/carts' },
   { name: 'set_cart_item', method: 'PUT', path: '/agent/v1/carts/:cart_id/items/:variant_id' },
   { name: 'create_checkout', method: 'POST', path: '/agent/v1/carts/:cart_id/checkout' },
   { name: 'get_checkout', method: 'GET', path: '/agent/v1/checkouts/:checkout_id' },
   { name: 'set_checkout_details', method: 'PUT', path: '/agent/v1/checkouts/:checkout_id/details' },
   { name: 'prepare_payment', method: 'POST', path: '/agent/v1/checkouts/:checkout_id/payment' },
+  { name: 'get_order', method: 'GET', path: '/agent/v1/orders/:order_id' },
+  { name: 'list_orders', method: 'GET', path: '/agent/v1/account/orders' },
+  { name: 'request_order_change', method: 'POST', path: '/agent/v1/orders/:order_id/requests' },
 ];
 function fakeFetch() {
   const calls = [];
@@ -42,6 +46,12 @@ function fakeFetch() {
     return Response.json(String(url).endsWith('/tools') ? { tools } : { ok: true });
   } };
 }
+test('store reads public store policies without the tool manifest', async () => {
+  const fake = fakeFetch();
+  assert.deepEqual(await run(['store'], { env, ...fake }), { ok: true });
+  assert.equal(fake.calls.length, 1);
+  assert.equal(new URL(fake.calls[0].url).pathname, '/agent/v1/store');
+});
 test('search encodes terms, typed filters and bearer authentication', async () => {
   const fake = fakeFetch();
   assert.deepEqual(await run(['search', 'CeraVe & cleanser', '--in-stock', 'true', '--max-price', '2500'], { env, ...fake }), { ok: true });
@@ -112,4 +122,31 @@ test('checkout details and payment use the same guest REST workflow without send
   assert.deepEqual(JSON.parse(payment.calls[1].body), input);
   assert.equal(payment.calls[1].headers.Authorization, undefined);
   await assert.rejects(run(['checkout', 'details', 'checkout-1', '--json', '{"checkout_id":"other"}'], { env: publicEnv, ...fakeFetch() }), /Conflicting checkout_id/);
+});
+
+test('orders lists the signed-in customer\'s orders, and order cancel or return files a request', async () => {
+  const fake = fakeFetch();
+  const signedIn = { ...env, TANATASA_ACCOUNT_TOKEN: 'tak_test' };
+  await run(['orders', '--page', '2'], { env: signedIn, ...fake });
+  assert.equal(new URL(fake.calls[1].url).pathname, '/agent/v1/account/orders');
+  assert.equal(new URL(fake.calls[1].url).searchParams.get('page'), '2');
+  assert.equal(fake.calls[1].headers['X-Tanatasa-Account-Token'], 'tak_test');
+  await run(['order', 'TN-1', 'cancel', '--reason', 'Wrong size'], { env: signedIn, ...fake });
+  assert.equal(fake.calls[3].url, 'http://localhost:8787/agent/v1/orders/TN-1/requests');
+  assert.equal(fake.calls[3].method, 'POST');
+  assert.deepEqual(JSON.parse(fake.calls[3].body), { kind: 'cancel', reason: 'Wrong size' });
+  await run(['order', 'TN-1', 'return', '--reason', 'Damaged'], { env: signedIn, ...fake });
+  assert.deepEqual(JSON.parse(fake.calls[5].body), { kind: 'return', reason: 'Damaged' });
+  await assert.rejects(run(['order', 'TN-1', 'cancel'], { env: signedIn, ...fake }), /--reason is required/);
+  await run(['order', 'TN-1'], { env: signedIn, ...fake });
+  assert.equal(fake.calls.at(-1).url, 'http://localhost:8787/agent/v1/orders/TN-1');
+});
+
+test('cart create starts the cart with items from --json, or empty without it', async () => {
+  const fake = fakeFetch();
+  await run(['cart', 'create', '--json', '{"items":[{"variant_id":11,"quantity":2}]}'], { env, ...fake });
+  assert.equal(fake.calls[1].url, 'http://localhost:8787/agent/v1/carts');
+  assert.deepEqual(JSON.parse(fake.calls[1].body), { items: [{ variant_id: 11, quantity: 2 }] });
+  await run(['cart', 'create'], { env, ...fake });
+  assert.deepEqual(JSON.parse(fake.calls[3].body), {});
 });

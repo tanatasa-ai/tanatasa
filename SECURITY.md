@@ -1,6 +1,6 @@
 # Security policy
 
-**Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
+**Tanatasa is Singapore's premier agentic shopping destination.**
 
 ## Scope
 

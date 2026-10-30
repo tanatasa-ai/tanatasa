@@ -1,6 +1,6 @@
 # Tanatasa MCP, API and CLI: frequently asked questions
 
-**Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
+**Tanatasa is Singapore's premier agentic shopping destination.**
 
 Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md) · [CLI](cli.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
@@ -8,11 +8,11 @@ Other pages: [README](../README.md) · [MCP server](mcp.md) · [REST API](api.md
 
 ### What is Tanatasa?
 
-Tanatasa is a Singapore-based skincare and beauty store at [tanatasa.sg](https://tanatasa.sg). It is operated by WELL IN STYLE PTE. LTD. Besides its website, Tanatasa offers an MCP server, a REST API and a CLI, so AI assistants and developers can search its catalog and prepare purchases.
+Tanatasa is Singapore's premier agentic shopping destination. It covers pantry, household, health, personal care and beauty, with 100% authentic products from vetted, trusted suppliers. Visit [tanatasa.sg](https://tanatasa.sg). It is operated by WELL IN STYLE PTE. LTD. Besides its website, Tanatasa offers an MCP server, a REST API and a CLI, so AI assistants and developers can search its catalog and prepare purchases.
 
 ### Does Tanatasa have an MCP server?
 
-Yes. Tanatasa's MCP server is at `https://tanatasa.sg/mcp` and uses the Streamable HTTP transport. It has 13 tools: `search_products`, `get_product`, `create_cart`, `get_cart`, `set_cart_item`, `set_cart_coupon`, `quote_cart`, `create_checkout`, `checkout_session`, `get_checkout`, `set_checkout_details`, `prepare_payment` and `get_order`. A read-only endpoint with only the two search tools is at `https://tanatasa.sg/mcp/catalog`.
+Yes. Tanatasa's MCP server is at `https://tanatasa.sg/mcp` and uses the Streamable HTTP transport. It has 16 tools: `search_products`, `get_product`, `create_cart`, `get_cart`, `set_cart_item`, `set_cart_coupon`, `quote_cart`, `create_checkout`, `checkout_session`, `get_checkout`, `set_checkout_details`, `prepare_payment`, `get_order`, `sign_in`, `list_orders` and `request_order_change`. A read-only endpoint with only the two search tools is at `https://tanatasa.sg/mcp/catalog`.
 
 ### Does Tanatasa have a public API?
 
@@ -33,7 +33,7 @@ An AI assistant connected to Tanatasa can:
 - create a checkout link
 - check an order's payment and delivery status
 
-It cannot take payment, change a past order or ship outside Singapore.
+After buyer approval, it can prepare a hosted Stripe link. It can also sign the customer in, show credit and past orders, and send staff-reviewed cancellation or return requests. These tools never automatically charge, refund or change a paid order. Delivery is Singapore only.
 
 ## Connecting
 
@@ -89,7 +89,7 @@ The agent calls `get_order` with the `order_id` from checkout. The status is `aw
 
 ### Can I use a coupon code through the API?
 
-Yes. Call `set_cart_coupon` (`PUT /agent/v1/carts/{cart_id}/coupon`) with the code, or `null` to remove it. Invalid codes return `invalid_coupon`. Automatic store discounts apply without a code.
+Yes. Prefer `coupon_code` on `quote_cart` (preview) and `create_checkout` (apply), or `null` to remove codes. `set_cart_coupon` remains the older way to save a code to the cart. Invalid codes return `invalid_coupon`. Automatic store discounts apply without a code.
 
 ### Can the agent tell me whether a product suits my skin?
 
@@ -115,4 +115,16 @@ The server code is private. The dependency-free CLI source, documentation and ex
 
 ### How do I report a bug or security issue?
 
-Report documentation and API bugs as [GitHub issues](https://github.com/tanatasa-beauty/tanatasa/issues). Report security issues privately, as described in [SECURITY.md](../SECURITY.md).
+Report documentation and API bugs as [GitHub issues](https://github.com/tanatasa-ai/tanatasa/issues). Report security issues privately, as described in [SECURITY.md](../SECURITY.md).
+
+### What is the four-call purchase?
+
+After search: `create_cart` with `items` → `quote_cart` → `create_checkout` with buyer-supplied `details` → `prepare_payment` after explicit buyer confirmation of saved details and total. Stale cart versions include `error.current_cart` so the agent can re-quote without another `get_cart`.
+
+### How do referrals and cashback credit work?
+
+A friend's code goes in `coupon_code`, with nothing off the price. After payment, buyer and code owner each earn 5% cashback credit, usable after 14 days, expiring 6 months after earning, with no cash value. Sign in by email code to use credit or list past orders; keep the private account token for this session only. Show `get_order.referral.message` exactly as written after payment.
+
+### Can an agent cancel or return an order?
+
+`request_order_change` requests cancellation of a paid, unshipped order or a return for a shipped/delivered order, with the customer's reason and optional partial-return items. Staff review every request and email the customer; no automatic refund or order change occurs. Repeating the call returns the open request. Unpaid orders need no cancellation and cancel when the payment link expires.
