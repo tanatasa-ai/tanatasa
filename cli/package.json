@@ -1,6 +1,6 @@
 {
   "name": "@tanatasa/cli",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Search Tanatasa products, share guest carts with the website and prepare hosted Stripe checkout.",
   "license": "MIT",
   "type": "module",
@@ -18,11 +18,11 @@
   "homepage": "https://tanatasa.sg",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tanatasa-beauty/tanatasa.git",
+    "url": "git+https://github.com/tanatasa-ai/tanatasa.git",
     "directory": "cli"
   },
   "bugs": {
-    "url": "https://github.com/tanatasa-beauty/tanatasa/issues"
+    "url": "https://github.com/tanatasa-ai/tanatasa/issues"
   },
   "author": "WELL IN STYLE PTE. LTD.",
   "publishConfig": {

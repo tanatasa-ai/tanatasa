@@ -1,8 +1,12 @@
 # Tanatasa MCP server setup and tool reference
 
-**Tanatasa is a Singapore-based skincare store with an MCP server, CLI, and API for AI agents and developers.**
+**Tanatasa is Singapore's premier agentic shopping destination.**
 
-The Tanatasa MCP server lets an AI assistant search Tanatasa's skincare and beauty catalog, build a cart and prepare a checkout link for the buyer. It is a remote server at `https://tanatasa.sg/mcp`, and it needs no account, API key or local install.
+Pantry, household, health, personal care and beauty, with 100% authentic products from vetted, trusted suppliers.
+
+After search, purchase in four calls: `create_cart` with `items` → `quote_cart` → `create_checkout` with buyer-supplied `details` → `prepare_payment`, only after the buyer confirms the saved details and total. The payment tool prepares a hosted Stripe link; only webhook-confirmed order status means payment succeeded.
+
+The Tanatasa MCP server lets an AI assistant search Tanatasa's pantry, household, health, personal care and beauty catalog, build a cart and prepare a checkout link for the buyer. It is a remote server at `https://tanatasa.sg/mcp`, and it needs no account, API key or local install.
 
 Other pages: [README](../README.md) · [REST API](api.md) · [CLI](cli.md) · [FAQ](faq.md) · [Examples](../examples/) · Store: [tanatasa.sg](https://tanatasa.sg)
 
@@ -10,7 +14,7 @@ Other pages: [README](../README.md) · [REST API](api.md) · [CLI](cli.md) · [F
 
 | Endpoint | Tools | Use it for |
 | --- | --- | --- |
-| `https://tanatasa.sg/mcp` | All 13 tools, plus the checkout UI resource | Full shopping: search, cart, quote, checkout, order status |
+| `https://tanatasa.sg/mcp` | All 16 tools, plus the checkout UI resource | Full shopping: search, cart, quote, checkout, order status |
 | `https://tanatasa.sg/mcp/catalog` | `search_products`, `get_product` | Read-only product search and details |
 
 - **Transport:** Streamable HTTP, stateless, with JSON responses. Send JSON-RPC as an HTTP `POST`. A `GET` returns `405`, and there is no server-to-client notification stream. Clients that support only the older HTTP+SSE transport cannot connect directly; see [stdio-only clients](#stdio-only-clients-mcp-remote).
@@ -149,19 +153,19 @@ curl -s https://tanatasa.sg/mcp \
 
 ## How shopping works over MCP
 
-1. `search_products` → pick a `variant_id`.
-2. `get_product` → check ingredients, usage, size and availability.
-3. `create_cart` → keep `cart_id`, `version` and `guest_token`.
-4. `set_cart_item` (and optionally `set_cart_coupon`) → each edit returns a new `version`.
-5. `quote_cart` → keep `version` and `total`.
-6. `create_checkout` with that `version`, `expected_total = total` and a new `idempotency_key` → give the full `checkout_url` to the buyer.
-7. The buyer opens the link, enters contact and delivery details on tanatasa.sg and pays on Stripe.
-8. `get_order` with the returned `order_id` → `awaiting_customer` until the buyer pays, then the paid order's status.
+After searching and choosing variant IDs, purchase in four calls:
+
+1. `create_cart` with `items: [{variant_id, quantity}]` → retain `cart_id`, `version` and the private `guest_token`.
+2. `quote_cart` → retain the current `version` and `total`; preview any `coupon_code` or signed-in cashback credit.
+3. `create_checkout` with that version, `expected_total`, a new `idempotency_key` and buyer-supplied `details` → details are saved as `details_version: 1`. Apply the same code/credit settings as the quote.
+4. Show the buyer the items, contact, delivery details and total. Only after explicit confirmation, call `prepare_payment` with `buyer_confirmed: true`, that `details_version`, `expected_total` and a new stable key.
+
+The hosted Stripe link does not itself charge anything. The buyer, or an explicitly authorized capable agent, completes hosted payment. Poll `get_order` for webhook-confirmed payment, then show `referral.message` exactly as written. If details were omitted or need changing, use `set_checkout_details` with the current version first.
 
 Rules that prevent most errors:
 
 - **Pass `guest_token` on every call after `create_cart`.** That includes `get_cart`, `set_cart_item`, `set_cart_coupon`, `quote_cart`, `create_checkout`, `checkout_session` and `get_order`. Keep it private. It is the only thing that authorizes the shopping session.
-- **Always send the cart's current `version`.** A stale version returns `cart_changed`. Re-read the cart, then retry.
+- **Always send the cart's current `version`.** A stale version returns `409 cart_changed` with `error.current_cart` (cart_id, version, lines and codes). Re-quote that cart without another `get_cart`, confirm any changed total and retry with current input.
 - **Quantities are absolute.** `quantity: 2` sets the line to 2. It does not add 2. `quantity: 0` removes the line.
 - **Retry checkout with the same `idempotency_key` and identical input.** You get the same checkout back. Never reuse a key for a different purchase.
 - **Use a new cart for each purchase.** `create_checkout` locks the cart.
@@ -177,6 +181,10 @@ To start on the website, choose **Continue with an agent** on /cart and privatel
 Guest shopping needs no account login. A guest token is private shopping-session access, not account authentication. Never put tokens in URLs, public messages or logs. The CLI does not persist guest tokens automatically; retain them securely. The buyer can re-share the same cart from its cart_url if agent session access was lost.
 
 After buyer approval of current details and total, prepare_payment creates a hosted Stripe payment_url without charging. The buyer, or a capable agent with explicit purchase authorization, completes that hosted page. There is no direct-charge API. Only webhook-backed get_order status confirms payment.
+
+## Referrals and cashback credit
+
+A friend’s referral code goes in `coupon_code` and takes nothing off the price. After payment, the buyer and code owner each earn 5% cashback credit on the card payment, excluding delivery. Credit becomes usable after 14 days, expires 6 months after it is earned, and has no cash value. A buyer’s own code earns nothing. Never guess a code. With account authentication, credit applies by default (`use_credit: false` disables it), only when the checkout contact email matches the signed-in customer; at least 50 cents remains payable by card. After payment, show `get_order.referral.message` exactly as written.
 
 ## Tool reference
 
@@ -197,6 +205,9 @@ All money fields are integer SGD cents. On success, every tool returns `structur
 | `set_checkout_details` | Set checkout delivery details | no | `cart:write` | no |
 | `prepare_payment` | Prepare Stripe payment | no (idempotent) | `cart:write` | no |
 | `get_order` | Get purchase status | yes | `orders:read` | no |
+| `sign_in` | Sign in / account credit | no | `orders:read` | no |
+| `list_orders` | List account orders | yes | `orders:read` | no |
+| `request_order_change` | Request cancellation or return | no | `cart:write` | no |
 
 ### `search_products`
 
@@ -259,21 +270,57 @@ Response fields: `product_id`, `slug`, `name`, `description`, `short_description
 
 ### `create_cart`
 
-Creates an empty cart. Without account linking, it also starts a guest session.
+Creates an empty cart, or starts the whole basket with optional `items` (1–20 entries, each `{variant_id, quantity}`, quantity 1–99). Duplicate variants are added together; a cart permits at most 20 variants and 99 units of each, subject to stock. An unknown variant (404 `variant_not_found`) or insufficient stock (409 `insufficient_stock`) refuses the whole cart.
 
-| Parameter | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `guest_token` | 64 hex chars | no | Pass an existing token to add another cart to the same guest session |
+`guest_token` is optional when continuing an existing session. Otherwise a guest receives a private token with `cart_id`, `version` and `lines`; retain it securely for subsequent calls. Never put it in URLs or logs.
 
 ```json
-{"name": "create_cart", "arguments": {}}
+{"name":"create_cart","arguments":{"items":[{"variant_id":11,"quantity":2}]}}
 ```
+
+Exact input schema:
 
 ```json
-{"cart_id": "38d60b03-d2d7-456b-b41a-b3f1d9523691", "version": 1, "lines": [], "coupon_code": null, "checkout_id": null, "guest_token": "<64 hex characters — keep private>"}
+{
+  "type": "object",
+  "properties": {
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variant_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "variant_id from search_products or get_product."
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "How many to buy."
+          }
+        },
+        "required": [
+          "variant_id",
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "description": "Optional: start the cart with these items (up to 20 variants), instead of calling set_cart_item for each. A variant listed twice is added together."
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
 ```
-
-`guest_token` is returned only for guest sessions. Keep it for every later call in this session. It is shown once and cannot be recovered.
 
 ### `get_cart`
 
@@ -286,7 +333,7 @@ Returns `cart_id`, `version`, `lines[]` (`variant_id`, `quantity`), `coupon_code
 
 ### `set_cart_item`
 
-Sets one variant's quantity. Availability is checked.
+Sets one variant's absolute quantity. Availability is checked. A stale version returns `409 cart_changed` with `error.current_cart` (cart_id, version, lines and codes); re-quote without another `get_cart`.
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -308,6 +355,8 @@ A cart holds at most 20 different variants and 99 units of each, and never more 
 
 ### `set_cart_coupon`
 
+The older way to apply a code. Prefer `coupon_code` on `quote_cart` (preview) and `create_checkout` (apply). Saves a coupon or referral code; `null` removes both. A stale version returns `409 cart_changed` with `error.current_cart`, so re-quote without another `get_cart`.
+
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `cart_id` | UUID | yes | |
@@ -319,56 +368,222 @@ The coupon is validated before it is saved. An invalid code returns `invalid_cou
 
 ### `quote_cart`
 
-Reprices the cart against current stock, scheduled prices and discounts.
+Reprices current stock, scheduled prices and discounts, with free Singapore shipping. Returns cart `version`, `lines`, `subtotal`, `discount`, `shipping`, `total`, referral and credit information. All money is integer SGD cents. Stock is not reserved.
 
-| Parameter | Type | Required |
-| --- | --- | --- |
-| `cart_id` | UUID | yes |
-| `guest_token` | 64 hex chars | yes for guests |
+Optional `coupon_code` previews a coupon or referral code without saving it; `null` removes both for the preview. Pass the same value to `create_checkout`. With `account_token` (or an account-linked connection), cashback credit applies unless `use_credit` is false. Keep the version and total for checkout.
 
 ```json
 {
-  "cart_id": "38d60b03-d2d7-456b-b41a-b3f1d9523691", "version": 2,
-  "currency": "SGD", "money_unit": "cents",
-  "lines": [{"variant_id": 469, "name": "Foaming Cleanser 236ml", "unit_price": 2094, "quantity": 2, "line_total": 4188, "…": "same fields as a search result"}],
-  "coupon_code": null, "discounts": [],
-  "subtotal": 4188, "discount": 0, "shipping": 0, "total": 4188,
-  "checkout_id": null, "stock_reserved": false, "quoted_at": "2026-10-22T16:03:36.689Z"
+  "type": "object",
+  "properties": {
+    "cart_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "cart_id from create_cart."
+    },
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "coupon_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A coupon code or a friend's referral code to apply; null removes both. quote_cart previews it; create_checkout applies it."
+    },
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    },
+    "use_credit": {
+      "type": "boolean",
+      "description": "Use the signed-in customer's cashback credit (default true)."
+    }
+  },
+  "required": [
+    "cart_id"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
 }
 ```
 
-`discounts[]` items have `code`, `amount` and `description`. Shipping is always `0` (free within Singapore). Keep `version` and `total` for `create_checkout`.
-
 ### `create_checkout`
 
-Locks the cart and creates a one-hour checkout link for the buyer. **No payment happens in this tool.**
+Locks the quoted cart and creates a one-hour review link. No payment happens here. Send `cart_id`, current `version`, `expected_total` (positive SGD cents), a unique `idempotency_key` (1–128 characters), and `guest_token` for guests.
 
-| Parameter | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `cart_id` | UUID | yes | |
-| `version` | integer ≥ 1 | yes | From the latest `quote_cart` |
-| `expected_total` | integer > 0 | yes | `total` from the latest `quote_cart`, in SGD cents |
-| `idempotency_key` | string 1–128 | yes | New for each purchase; reuse it only to retry |
-| `guest_token` | 64 hex chars | yes for guests | |
+Optional `details` uses the same contact/delivery shape as `set_checkout_details` and is validated and saved at `details_version: 1`. Invalid delivery details return `422 invalid_delivery_details` and no checkout is created. Details are part of the idempotency input: retries must send identical details and the same key. `set_checkout_details` remains available for changes using the checkout's current `details_version`.
+
+Optional `coupon_code` applies a coupon or friend's referral code (`null` removes both). `account_token` enables the customer's credit; `use_credit` defaults to true. Use the same settings as the quote. A changed total returns `total_changed`; re-quote and confirm the new total. A stale version returns `409 cart_changed` with `error.current_cart`, so re-quote without a separate `get_cart`.
+
+Returns `checkout_id`, `order_id`, `checkout_url`, `details_version`, `total`, `currency`, `money_unit`, `expires_at`, `payment_status`, `handoff_options` and `next_action`. The complete checkout URL (including any fragment) is private to the intended buyer. Show the saved details and total and obtain explicit approval before `prepare_payment`.
 
 ```json
-{"name": "create_checkout", "arguments": {"cart_id": "38d60b03-d2d7-456b-b41a-b3f1d9523691", "version": 2, "expected_total": 4188, "idempotency_key": "purchase-20261023-1", "guest_token": "<guest_token>"}}
+{
+  "type": "object",
+  "properties": {
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    },
+    "use_credit": {
+      "type": "boolean",
+      "description": "Use the signed-in customer's cashback credit (default true)."
+    },
+    "coupon_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A coupon code or a friend's referral code to apply; null removes both. quote_cart previews it; create_checkout applies it."
+    },
+    "cart_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "cart_id from create_cart."
+    },
+    "version": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "description": "The version from the quote_cart result you are checking out."
+    },
+    "expected_total": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "description": "The total from that quote, in SGD cents. Checkout refuses if the total changed."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "A new random key per purchase. Retry with the same key and exact input; never reuse it for a different purchase."
+    },
+    "details": {
+      "type": "object",
+      "properties": {
+        "contact": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "email": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 254
+            },
+            "phone": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "additionalProperties": false
+        },
+        "delivery": {
+          "type": "object",
+          "properties": {
+            "recipient_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "recipient_phone": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "address_line1": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "address_line2": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit_number": {
+              "type": "string",
+              "maxLength": 30,
+              "description": "e.g. #12-34. Required unless no_unit_number is true."
+            },
+            "no_unit_number": {
+              "type": "boolean",
+              "description": "true for a landed house or other address with no unit number."
+            },
+            "city": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "postal_code": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 6,
+              "description": "The 6-digit Singapore postal code."
+            },
+            "country": {
+              "type": "string",
+              "const": "SG"
+            }
+          },
+          "required": [
+            "recipient_name",
+            "recipient_phone",
+            "address_line1",
+            "no_unit_number",
+            "postal_code",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "contact",
+        "delivery"
+      ],
+      "additionalProperties": false,
+      "description": "Optional: the buyer's contact and Singapore delivery details, saved with the checkout (details_version 1) instead of a separate set_checkout_details call. The buyer still confirms them and the total before prepare_payment."
+    }
+  },
+  "required": [
+    "cart_id",
+    "version",
+    "expected_total",
+    "idempotency_key"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
 ```
-
-Response fields:
-
-| Field | Meaning |
-| --- | --- |
-| `checkout_id` | Checkout identifier |
-| `order_id` | Stable order reference for `get_order` |
-| `checkout_url` | `https://tanatasa.sg/checkout#<capability>`. Give the **complete** URL, including the `#` fragment, to the intended buyer only. |
-| `handoff_options[]` | Current review, saved-details and hosted-payment options. Availability depends on checkout progress; direct in_agent_payment remains unavailable. |
-| `expires_at` | ISO time, one hour after creation |
-| `total`, `currency`, `money_unit` | The amount the buyer will review |
-| `payment_status` | `awaiting_customer` until an order exists |
-| `next_action` | Plain-language instruction for the agent |
-
-If the total changed since the quote, the call fails with `total_changed`. Quote again and confirm the new total with the user.
 
 ### `get_checkout`
 
@@ -400,7 +615,7 @@ REST: `GET /agent/v1/checkouts/:checkout_id`. Exact input schema:
 
 ### `set_checkout_details`
 
-Save buyer-supplied contact and Singapore delivery details for this new checkout. Requires its current details_version; increments it. Does not charge a payment or modify prior purchases. Details are frozen after payment preparation starts.
+If `create_checkout` included `details`, they start at `details_version: 1`. Use the current version from that response or `get_checkout` for changes. Save buyer-supplied contact and Singapore delivery details for this new checkout. Requires its current details_version; increments it. Does not charge a payment or modify prior purchases. Details are frozen after payment preparation starts.
 
 REST: `PUT /agent/v1/checkouts/:checkout_id/details`. Exact input schema:
 
@@ -592,18 +807,191 @@ Returns the same shape as `create_checkout`. It also advertises the UI resource 
 
 ### `get_order`
 
-| Parameter | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `order_id` | string 1–100 | yes | The `order_id` returned by checkout |
-| `guest_token` | 64 hex chars | yes for guests | |
+Reads payment and delivery status, `items`, `tracking`, `change_requests` and `can_request`. With `account_token`, opens any order belonging to the signed-in customer, including website and other-assistant purchases. Guest tokens access only the session's purchases.
 
-Before the buyer pays:
+Before payment, status is `awaiting_customer` or `expired`. Only the Stripe webhook confirms payment. After payment, `referral.message` contains the buyer's own code and promotion: show it to the customer exactly as written. Request cancellation or return with `request_order_change`; this tool is read-only.
 
 ```json
-{"order_id": "<order_id>", "checkout_id": "<checkout_id>", "status": "awaiting_customer", "total": 4188, "currency": "SGD", "money_unit": "cents"}
+{
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "order_id from prepare_payment, get_checkout or list_orders, e.g. TN-…"
+    },
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    }
+  },
+  "required": [
+    "order_id"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
 ```
 
-`status` becomes `expired` if the link was never used. After the buyer submits checkout, the response adds `payment_order_id`, `requires_review`, `tracking` (`carrier`, `number`, `url`, or `null`), `created_at` and an order `url`, and `status` becomes the store order status (e.g. `paid`, `shipped`, `delivered`). Only Stripe's webhook sets a paid status. Opening the link or returning from Stripe does not. Responses never include the buyer's contact or address.
+### `sign_in`
+
+POST `/agent/v1/account/sign-in`; OAuth scope `orders:read`.
+
+- `{email}` emails a 6-digit code; never guess a code or request an email password.
+- `{email, code}` verifies the code the customer provides and returns a private `account_token` valid for 24 hours in this session only.
+- `{account_token}` alone returns the customer's referral code and message, available and pending credit balances, and each amount's `usable_from` and `expires_at` dates.
+
+Keep the same shopping session's guest token. Over REST send the account token in `X-Tanatasa-Account-Token`, never in a URL. Account-linked connections act for their linked customer.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 254,
+      "description": "The customer's email. Alone: Tanatasa emails them a 6-digit code. With code: signs them in."
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^\\d{6}$",
+      "description": "The 6-digit code the customer read from their email."
+    },
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    },
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
+```
+
+### `list_orders`
+
+GET `/agent/v1/account/orders`; OAuth scope `orders:read`. Requires `account_token` or an account-linked connection. Returns the customer's non-pending orders, newest first, from the website or any assistant, with status, total, items, tracking, change requests and `can_request`. `page` is 1–1000; `limit` defaults to 10, up to 50. Follow `next_page` for older orders.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    },
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "Orders per page (default 10, up to 50)."
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Page; use next_page from the previous result."
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
+```
+
+### `request_order_change`
+
+POST `/agent/v1/orders/{order_id}/requests`; OAuth scope `cart:write`. Send `kind: "cancel"` for a paid order not yet shipped, or `kind: "return"` for a shipped or delivered order, plus the customer's `reason` (1–1000 characters). Optional `items` lists 1–20 `{variant_id, quantity}` entries (quantity 1–99) for a partial return; omit for the whole order.
+
+Staff review every request and email the customer. This tool never refunds or changes the order itself. Repeating the call returns the open request. Errors (409): `order_not_paid` (unpaid orders are never charged and cancel when their payment link expires), `order_already_shipped`, `order_not_shipped` and `order_closed`.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "order_id from prepare_payment, get_checkout or list_orders, e.g. TN-…"
+    },
+    "guest_token": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+    },
+    "account_token": {
+      "type": "string",
+      "pattern": "^tak_[a-f0-9]{64}$",
+      "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "cancel",
+        "return"
+      ],
+      "description": "cancel: a paid order that hasn't shipped. return: a shipped or delivered order."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "The customer's reason, in their words."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variant_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          }
+        },
+        "required": [
+          "variant_id",
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "description": "For a return of only some items: variant_id and quantity from get_order. Omit for the whole order."
+    }
+  },
+  "required": [
+    "order_id",
+    "kind",
+    "reason"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
+```
 
 ## Authentication
 
@@ -620,7 +1008,7 @@ Before the buyer pays:
 | `invalid_input` | Schema or value problem (details in `error.details`) | Fix the arguments |
 | `product_not_found` / `variant_not_found` | Not a public, sellable item | Search again |
 | `cart_not_found` / `order_not_found` | Wrong ID, other session, or cart expired (30 days without edits) | Check `guest_token` and ID |
-| `cart_changed` | Stale `version` | `get_cart`, then retry with the current version |
+| `cart_changed` | Stale `version` (409) | Use `error.current_cart`, re-quote and retry; no extra `get_cart` needed |
 | `cart_locked` | Checkout already started on this cart | Retry with the original key, or create a new cart |
 | `insufficient_stock` | Quantity no longer available | Lower the quantity or choose another variant |
 | `invalid_price` | A cart item has no valid selling price right now | Remove that item |
@@ -631,6 +1019,8 @@ Before the buyer pays:
 | `idempotency_conflict` | Key reused with different input | Use the original input, or a new key |
 | `checkout_expired` | Link older than one hour | Create a new cart and checkout |
 | `service_unavailable` | Temporary failure | Retry; for checkout, reuse the same key |
+
+`invalid_delivery_details` (422) rejects invalid checkout contact/delivery details without creating a checkout. `sign_in_expired` (401) requires sign-in again. Order request errors are documented under `request_order_change`.
 
 An unknown tool name returns a JSON-RPC `InvalidParams` error.
 

@@ -13,7 +13,7 @@ function canonical(value) {
 const contract = tools => tools.map(({ name, method, path, input_schema }) =>
   canonical({ name, method, path, input_schema })).sort((a, b) => a.name.localeCompare(b.name));
 const response = await fetch('https://tanatasa.sg/agent/v1/tools', {
-  headers: { 'User-Agent': 'tanatasa-docs-check/1.0 (+https://github.com/tanatasa-beauty/tanatasa)' },
+  headers: { 'User-Agent': 'tanatasa-docs-check/1.0 (+https://github.com/tanatasa-ai/tanatasa)' },
   redirect: 'error', signal: AbortSignal.timeout(30000),
 });
 assert.equal(response.status, 200, 'Public tool manifest is unavailable');

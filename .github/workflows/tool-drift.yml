@@ -1,4 +1,4 @@
-# Fails when the live Tanatasa tool list no longer matches the ten tools documented in docs/mcp.md.
+# Fails when the live Tanatasa tool list no longer matches the 16 tools documented in docs/mcp.md.
 name: Tool drift check
 on:
   pull_request:

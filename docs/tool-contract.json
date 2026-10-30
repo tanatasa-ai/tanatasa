@@ -1,7 +1,7 @@
 [
   {
     "name": "search_products",
-    "description": "Search public sellable variants by words, brand/category/purpose, skin type, ingredient, availability and price in SGD cents. Use variant_id when adding items; follow next_page for more results.",
+    "description": "Find products to buy. Searches sellable variants by words, brand, category, purpose, skin type, ingredient, stock and price (SGD cents). Returns variant_id, price and stock for each match; follow next_page for more.",
     "method": "GET",
     "path": "/agent/v1/products",
     "input_schema": {
@@ -10,54 +10,65 @@
         "q": {
           "type": "string",
           "maxLength": 200,
-          "default": ""
+          "default": "",
+          "description": "Search words, e.g. \"cerave cleanser\" or \"gift for dad under $40\". A price phrase sets max_price when it is absent."
         },
         "brand": {
           "type": "string",
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "Brand name or slug."
         },
         "category": {
           "type": "string",
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "Category name or slug, e.g. \"pantry\" or \"skincare\"."
         },
         "purpose": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "What it is for, e.g. \"sensitive-skin\"."
         },
         "skin_type": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "e.g. \"oily\", \"dry\", \"sensitive\"."
         },
         "ingredient": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "A key ingredient, e.g. \"ceramides\"."
         },
         "min_price": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Lowest price in SGD cents."
         },
         "max_price": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Highest price in SGD cents (S$40 is 4000)."
         },
         "in_stock": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Only variants available now."
         },
         "page": {
           "type": "integer",
           "minimum": 1,
           "maximum": 1000,
-          "default": 1
+          "default": 1,
+          "description": "Result page; use next_page from the previous result."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
           "maximum": 50,
-          "default": 20
+          "default": 20,
+          "description": "Results per page (1-50)."
         }
       },
       "additionalProperties": false,
@@ -66,7 +77,7 @@
   },
   {
     "name": "get_product",
-    "description": "Get product descriptions, ingredients, usage, images and variants. product accepts a product ID, product slug, variant slug or SKU.",
+    "description": "Read one product in full: description, ingredients, usage, images, every variant with price and stock, delivery estimate and return policy. product accepts a product ID, product slug, variant slug or SKU.",
     "method": "GET",
     "path": "/agent/v1/products/:product",
     "input_schema": {
@@ -75,7 +86,8 @@
         "product": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 200
+          "maxLength": 200,
+          "description": "A product ID, product slug, variant slug or SKU, e.g. from search_products."
         }
       },
       "required": [
@@ -87,7 +99,7 @@
   },
   {
     "name": "create_cart",
-    "description": "Create an empty persistent cart without account login. Save cart_id, version and the private guest_token if returned. Pass guest_token on subsequent shopping calls. Account authentication is optional.",
+    "description": "Start shopping: creates a cart, no account needed. Pass items [{variant_id, quantity}] to start it with the whole basket in one call. Returns cart_id, version and, for guests, a private guest_token: pass guest_token on every later call and never share it. Next: quote_cart.",
     "method": "POST",
     "path": "/agent/v1/carts",
     "input_schema": {
@@ -97,6 +109,33 @@
           "type": "string",
           "pattern": "^[a-f0-9]{64}$",
           "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variant_id": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "description": "variant_id from search_products or get_product."
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99,
+                "description": "How many to buy."
+              }
+            },
+            "required": [
+              "variant_id",
+              "quantity"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Optional: start the cart with these items (up to 20 variants), instead of calling set_cart_item for each. A variant listed twice is added together."
         }
       },
       "additionalProperties": false,
@@ -105,7 +144,7 @@
   },
   {
     "name": "get_cart",
-    "description": "Read cart items, coupon, version and checkout lock.",
+    "description": "Read a cart's items, codes, current version and whether a checkout has locked it. Use quote_cart for prices and totals.",
     "method": "GET",
     "path": "/agent/v1/carts/:cart_id",
     "input_schema": {
@@ -113,7 +152,8 @@
       "properties": {
         "cart_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "cart_id from create_cart."
         },
         "guest_token": {
           "type": "string",
@@ -130,7 +170,7 @@
   },
   {
     "name": "set_cart_item",
-    "description": "Add or update a variant using an absolute quantity; zero removes it. Supply the current cart version. Maximum 20 variants and 99 units each; availability is checked.",
+    "description": "Add, change or remove one item in an existing cart. quantity is the total wanted (not an increment); 0 removes it. Send the cart's current version; the result has the new one. If the version is stale, the error includes current_cart. Up to 20 variants and 99 of each; stock is checked.",
     "method": "PUT",
     "path": "/agent/v1/carts/:cart_id/items/:variant_id",
     "input_schema": {
@@ -138,20 +178,24 @@
       "properties": {
         "cart_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "cart_id from create_cart."
         },
         "version": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The cart's current version, from the last cart result. Each edit increments it."
         },
         "variant_id": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "variant_id from search_products or get_product."
         },
         "quantity": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 99
+          "maximum": 99,
+          "description": "The total quantity wanted (not an increment); 0 removes the item."
         },
         "guest_token": {
           "type": "string",
@@ -171,7 +215,7 @@
   },
   {
     "name": "set_cart_coupon",
-    "description": "Apply a coupon code or null to remove it. Supply current cart version. Auto discounts also apply.",
+    "description": "Older way to apply a code: saves a coupon or a friend's referral code to the cart (null removes both). Send the current version. Prefer coupon_code on quote_cart and create_checkout. Automatic discounts apply either way.",
     "method": "PUT",
     "path": "/agent/v1/carts/:cart_id/coupon",
     "input_schema": {
@@ -179,11 +223,13 @@
       "properties": {
         "cart_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "cart_id from create_cart."
         },
         "version": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The cart's current version, from the last cart result. Each edit increments it."
         },
         "coupon_code": {
           "anyOf": [
@@ -195,7 +241,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "A coupon code or a friend's referral code; null removes both."
         },
         "guest_token": {
           "type": "string",
@@ -214,7 +261,7 @@
   },
   {
     "name": "quote_cart",
-    "description": "Reprice the cart with current stock, scheduled prices and discounts. All amounts are SGD cents; shipping is free within Singapore. Stock is not reserved. Save version and total for checkout.",
+    "description": "Price the cart now: current prices, discounts, stock, free Singapore delivery and the total, all in SGD cents. Stock is not reserved. coupon_code previews a coupon or a friend's referral code without saving it. With account_token, applies the customer's cashback credit unless use_credit is false. Next: create_checkout with this version and total.",
     "method": "GET",
     "path": "/agent/v1/carts/:cart_id/quote",
     "input_schema": {
@@ -222,12 +269,35 @@
       "properties": {
         "cart_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "cart_id from create_cart."
         },
         "guest_token": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$",
           "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "coupon_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A coupon code or a friend's referral code to apply; null removes both. quote_cart previews it; create_checkout applies it."
+        },
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+        },
+        "use_credit": {
+          "type": "boolean",
+          "description": "Use the signed-in customer's cashback credit (default true)."
         }
       },
       "required": [
@@ -239,7 +309,7 @@
   },
   {
     "name": "create_checkout",
-    "description": "Prepare a checkout for a quoted cart without account login. Requires quoted version, expected_total in SGD cents and an idempotency_key. Locks the cart and returns checkout_id, details_version and a review link. Contact/delivery details can be added through set_checkout_details or the browser. Does not charge a payment.",
+    "description": "Lock the quoted cart for purchase. Send the quote's version, its total as expected_total and a new idempotency_key; coupon_code applies a code. Pass details (the buyer's contact and Singapore delivery details) to save them here instead of calling set_checkout_details. Returns checkout_id, details_version and a review link. Does not charge anything. Next: show the buyer the details and total, then prepare_payment.",
     "method": "POST",
     "path": "/agent/v1/carts/:cart_id/checkout",
     "input_schema": {
@@ -250,79 +320,48 @@
           "pattern": "^[a-f0-9]{64}$",
           "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
         },
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+        },
+        "use_credit": {
+          "type": "boolean",
+          "description": "Use the signed-in customer's cashback credit (default true)."
+        },
+        "coupon_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A coupon code or a friend's referral code to apply; null removes both. quote_cart previews it; create_checkout applies it."
+        },
         "cart_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "cart_id from create_cart."
         },
         "version": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The version from the quote_cart result you are checking out."
         },
         "expected_total": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The total from that quote, in SGD cents. Checkout refuses if the total changed."
         },
         "idempotency_key": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
-        }
-      },
-      "required": [
-        "cart_id",
-        "version",
-        "expected_total",
-        "idempotency_key"
-      ],
-      "additionalProperties": false,
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    }
-  },
-  {
-    "name": "get_checkout",
-    "description": "Read this shopping session's checkout, saved contact/delivery details, details_version, total and available handoff paths. Delivery details and payment links are private. Account login is optional.",
-    "method": "GET",
-    "path": "/agent/v1/checkouts/:checkout_id",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "checkout_id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "guest_token": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
-        }
-      },
-      "required": [
-        "checkout_id"
-      ],
-      "additionalProperties": false,
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    }
-  },
-  {
-    "name": "set_checkout_details",
-    "description": "Save buyer-supplied contact and Singapore delivery details for this new checkout. Requires its current details_version; increments it. Does not charge a payment or modify prior purchases. Details are frozen after payment preparation starts.",
-    "method": "PUT",
-    "path": "/agent/v1/checkouts/:checkout_id/details",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "checkout_id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "guest_token": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
-        },
-        "details_version": {
-          "type": "integer",
-          "minimum": 0
+          "maxLength": 128,
+          "description": "A new random key per purchase. Retry with the same key and exact input; never reuse it for a different purchase."
         },
         "details": {
           "type": "object",
@@ -377,10 +416,12 @@
                 },
                 "unit_number": {
                   "type": "string",
-                  "maxLength": 30
+                  "maxLength": 30,
+                  "description": "e.g. #12-34. Required unless no_unit_number is true."
                 },
                 "no_unit_number": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "true for a landed house or other address with no unit number."
                 },
                 "city": {
                   "type": "string",
@@ -390,7 +431,8 @@
                 "postal_code": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 6
+                  "maxLength": 6,
+                  "description": "The 6-digit Singapore postal code."
                 },
                 "country": {
                   "type": "string",
@@ -412,7 +454,162 @@
             "contact",
             "delivery"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Optional: the buyer's contact and Singapore delivery details, saved with the checkout (details_version 1) instead of a separate set_checkout_details call. The buyer still confirms them and the total before prepare_payment."
+        }
+      },
+      "required": [
+        "cart_id",
+        "version",
+        "expected_total",
+        "idempotency_key"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "get_checkout",
+    "description": "Read a checkout: saved contact and delivery details, details_version, total, status and the ways to finish (review link, payment link). These details and links are private to the buyer.",
+    "method": "GET",
+    "path": "/agent/v1/checkouts/:checkout_id",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "checkout_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "checkout_id from create_checkout or checkout_session."
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "required": [
+        "checkout_id"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "set_checkout_details",
+    "description": "Save the buyer's contact and Singapore delivery details on a checkout. Send its current details_version; the result has the new one. Does not charge anything. Details can't change once payment preparation starts.",
+    "method": "PUT",
+    "path": "/agent/v1/checkouts/:checkout_id/details",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "checkout_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "checkout_id from create_checkout or checkout_session."
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "details_version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The checkout's current details_version from get_checkout (0 before any details are saved)."
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "contact": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "email": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 254
+                },
+                "phone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                }
+              },
+              "required": [
+                "name",
+                "email",
+                "phone"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "type": "object",
+              "properties": {
+                "recipient_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "recipient_phone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "address_line1": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "address_line2": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "unit_number": {
+                  "type": "string",
+                  "maxLength": 30,
+                  "description": "e.g. #12-34. Required unless no_unit_number is true."
+                },
+                "no_unit_number": {
+                  "type": "boolean",
+                  "description": "true for a landed house or other address with no unit number."
+                },
+                "city": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "postal_code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 6,
+                  "description": "The 6-digit Singapore postal code."
+                },
+                "country": {
+                  "type": "string",
+                  "const": "SG"
+                }
+              },
+              "required": [
+                "recipient_name",
+                "recipient_phone",
+                "address_line1",
+                "no_unit_number",
+                "postal_code",
+                "country"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "contact",
+            "delivery"
+          ],
+          "additionalProperties": false,
+          "description": "Contact and Singapore delivery details exactly as the buyer gave them."
         }
       },
       "required": [
@@ -426,7 +623,7 @@
   },
   {
     "name": "prepare_payment",
-    "description": "Create or recover a hosted Stripe payment URL after the buyer confirms the current delivery details and expected_total in SGD cents. Requires buyer_confirmed=true, current details_version and an idempotency_key retained on exact retries. Creates an unpaid order but does not charge a payment. The buyer or an authorized capable agent completes hosted Stripe checkout. get_order reports webhook-confirmed payment.",
+    "description": "Get the hosted Stripe payment link, only after the buyer confirmed the saved details and total: send buyer_confirmed=true, that details_version, that total and an idempotency_key (reuse it on retries). Creates an unpaid order; nothing is charged until the buyer, or an agent they explicitly authorized, pays on Stripe. Then poll get_order.",
     "method": "POST",
     "path": "/agent/v1/checkouts/:checkout_id/payment",
     "input_schema": {
@@ -434,7 +631,8 @@
       "properties": {
         "checkout_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "checkout_id from create_checkout or checkout_session."
         },
         "guest_token": {
           "type": "string",
@@ -443,20 +641,24 @@
         },
         "details_version": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The details_version the buyer confirmed."
         },
         "expected_total": {
           "type": "integer",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "The total the buyer confirmed, in SGD cents."
         },
         "idempotency_key": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
+          "maxLength": 128,
+          "description": "A new random key per purchase. Retry with the same key and exact input; never reuse it for a different purchase."
         },
         "buyer_confirmed": {
           "type": "boolean",
-          "const": true
+          "const": true,
+          "description": "true only after the buyer confirmed these details and this total."
         }
       },
       "required": [
@@ -472,7 +674,7 @@
   },
   {
     "name": "get_order",
-    "description": "Get payment and fulfilment status and tracking for a purchase created by this guest session or account connection. Supply guest_token for guest purchases. Payment confirmation comes from Stripe webhooks. Does not update prior purchases.",
+    "description": "Check an order: payment and delivery status, items, tracking and any cancellation or return request. Works for orders this session or account connection placed (guest_token for guests) and, with account_token, any of the signed-in customer's orders. Once paid it includes referral.message: show it to the customer exactly as written. Read-only; to cancel or return, use request_order_change.",
     "method": "GET",
     "path": "/agent/v1/orders/:order_id",
     "input_schema": {
@@ -481,12 +683,18 @@
         "order_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "order_id from prepare_payment, get_checkout or list_orders, e.g. TN-…"
         },
         "guest_token": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$",
           "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
         }
       },
       "required": [
@@ -498,7 +706,7 @@
   },
   {
     "name": "checkout_session",
-    "description": "Prepare checkout from product feed item IDs and quantities without account login. For guests, call create_cart first and supply its guest_token. Optional item metadata is not authoritative. Returns a Tanatasa review link. Use get_checkout and set_checkout_details for buyer-approved delivery details, then prepare_payment after explicit approval of the current details and total. Supply a new idempotency_key per purchase and retain it and guest_token on retries.",
+    "description": "Shortcut from product feed items to a checkout: send feed item ids (tanatasa-variant-<id>) and quantities. Guests call create_cart first and pass its guest_token. Item names and prices you send are ignored; Tanatasa's catalogue is authoritative. Returns a checkout and review link; continue with set_checkout_details and prepare_payment.",
     "method": "POST",
     "path": "/agent/v1/checkout-session",
     "input_schema": {
@@ -519,7 +727,8 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "pattern": "^tanatasa-variant-[1-9]\\d*$"
+                    "pattern": "^tanatasa-variant-[1-9]\\d*$",
+                    "description": "The product feed item id, tanatasa-variant-<variant_id>."
                   },
                   "quantity": {
                     "type": "integer",
@@ -572,16 +781,160 @@
           "required": [
             "items"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "The items to buy: up to 20 feed items with quantities."
         },
         "idempotency_key": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100
+          "maxLength": 100,
+          "description": "A new random key per purchase; retry with the same key."
         }
       },
       "required": [
         "checkout_session"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "sign_in",
+    "description": "Sign the customer in with a code from their email. 1) Send email: Tanatasa emails them a 6-digit code. 2) Send email and the code they read to you: returns a private account_token (24 hours, this session only). 3) Send only account_token: shows their referral code and cashback credit with expiry dates. The token lets quote_cart and create_checkout use their credit and list_orders and get_order open their orders. Never guess a code.",
+    "method": "POST",
+    "path": "/agent/v1/account/sign-in",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254,
+          "description": "The customer's email. Alone: Tanatasa emails them a 6-digit code. With code: signs them in."
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^\\d{6}$",
+          "description": "The 6-digit code the customer read from their email."
+        },
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        }
+      },
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "list_orders",
+    "description": "List the signed-in customer's paid orders, newest first, from the website or any assistant: status, total, items, tracking and change requests. Needs account_token from sign_in (or an account-linked connection). Follow next_page for older orders.",
+    "method": "GET",
+    "path": "/agent/v1/account/orders",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Orders per page (default 10, up to 50)."
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Page; use next_page from the previous result."
+        }
+      },
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "request_order_change",
+    "description": "Ask Tanatasa to cancel a paid order that hasn't shipped (kind cancel) or to take back a shipped or delivered order (kind return), with the customer's reason. Staff review it and email the customer; nothing is refunded or changed until then. Repeating the call returns the open request. Unpaid orders need no cancellation: they are never charged.",
+    "method": "POST",
+    "path": "/agent/v1/orders/:order_id/requests",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "order_id from prepare_payment, get_checkout or list_orders, e.g. TN-…"
+        },
+        "guest_token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Private guest session token from create_cart. Retain for cart, checkout and purchase-status calls; no account login needed."
+        },
+        "account_token": {
+          "type": "string",
+          "pattern": "^tak_[a-f0-9]{64}$",
+          "description": "Private account token from sign_in, after the customer gave you the code from their email. Lets quotes and checkout use their cashback credit, and opens their orders."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "cancel",
+            "return"
+          ],
+          "description": "cancel: a paid order that hasn't shipped. return: a shipped or delivered order."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "The customer's reason, in their words."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variant_id": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99
+              }
+            },
+            "required": [
+              "variant_id",
+              "quantity"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "For a return of only some items: variant_id and quantity from get_order. Omit for the whole order."
+        }
+      },
+      "required": [
+        "order_id",
+        "kind",
+        "reason"
       ],
       "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
